@@ -347,6 +347,56 @@ interactivos no se traducían porque LLDB no tiene source maps de línea.
 
 ---
 
+### Revisión REV-005 · Fase 0: las ocho decisiones abiertas de la spec
+
+- **Fecha:** 2026-11-13
+- **Tarea:** `T-OPEN-001..008` · `T-VSCD-018` · `T-VSCD-019`
+- **Revisor:** agente principal de la sesión
+- **Modelo ejecutor:** MiniMax M3.1 Flash (esquema JSON, BCL v1, subconjunto del núcleo) + agente principal (las seis decisiones restantes, el bloqueo y la integración)
+- **Fase:** Fase 0 (Fundación)
+- **Veredicto:** APROBADO
+
+#### Contexto
+
+La spec §19 listaba ocho decisiones abiertas y la Fase 0 del roadmap las
+tenía como bloqueantes: «Es la fase que desbloquea todas las demás». Con las
+ocho resueltas, el núcleo del transpilador (Fase 1) deja de tener que adivinar
+nada mientras se escribe.
+
+#### Defectos encontrados
+
+| # | Archivo | Severidad | Descripción |
+|---|---|---|---|
+| 1 | `docs/decisions/0002-*.md`, `0003-*.md` | Menor | Los dos documentos normativos se crearon en `docs/` con otro nombre, fuera de la convención `docs/decisions/NNNN-*.md` que ya usaba el backlog. Reubicados. |
+| 2 | `docs/decisions/0003-*.md` | Mayor | El documento propone un código de diagnóstico nuevo (`R#0001`) que la spec §17 no contempla. Recogido como ampliación explícita en `docs/decisions/README.md`. |
+| 3 | `ai/skills/rsharp-sugar-and-ai-blocks/SKILL.md` | Menor | El ejemplo de la skill usa `Option<std::rc::Rc<Weak<RefCell<Nodo>>>>`, que no es Rust válido. Corregido a `Option<std::rc::Weak<RefCell<Nodo>>>`. |
+| 4 | `extension/src/toolchain.ts` | Menor | El SDK de .NET no se buscaba fuera del `PATH` (ya detectado en REV-004, pero sin cobertura de test). Añadido `~/.dotnet` y `DOTNET_ROOT`. |
+
+#### Correcciones aplicadas
+
+- `docs/decisions/` — ocho documentos de decisión con el mismo formato (estado, fecha, sección de la spec, contexto, decisión, consecuencias, alternativas descartadas) más un índice.
+- `extension/schemas/rsharp.schema.json` — esquema JSON Schema draft-07 completo, publicado con `contributes.jsonValidation`.
+- `extension/src/lock.ts` — lectura del `rsharp.lock` y comparación del hash del sugar.
+- `examples/rsharp-demo/rsharp.lock` — bloqueo de ejemplo, generado con la propia función de hash.
+
+#### Observaciones pendientes
+
+- **O1 · Las decisiones amplían la spec.** `R#0001`, el formato de `rsharp.lock`, `[sugar.ai]` como forma canónica y el FFI con superficie de C# deben incorporarse a `rsharp-spec.md` cuando se actualice. Queda listado en `docs/decisions/README.md`.
+- **O2 · `#codeGenAI` tiene dos formas.** La spec usa `#codeGenAI … #end`; la decisión fija `#if RSHARP_AI` + `#if codeGenAI(...)`. La forma original queda como alias. La gramática resalta las dos.
+- **O3 · El FFI queda para más adelante.** La interfaz está decidida (como en C#) pero la implementación es trabajo de la Fase 5.
+
+#### Verificación ejecutada
+
+- `npm test` → **206/206 pruebas**.
+- Esquema validado con `ajv` contra tres TOML reales (21, 40 y 41 claves): ninguna rechazada.
+- Instancia real de VSCode → el esquema se carga sin errores y la extensión activa con el proyecto de ejemplo.
+
+**Firma:** agente principal de la sesión · 2026-11-13 · APROBADO
+
+---
+
+---
+
 ## Plantilla para nuevas revisiones
 
 Copiar el bloque de la sección "Plantilla de revisión" y añadirlo al final de

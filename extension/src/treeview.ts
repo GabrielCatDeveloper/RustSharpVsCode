@@ -21,6 +21,7 @@ import type * as vscode from 'vscode';
 import * as vscodeApi from 'vscode';
 
 import * as path from 'node:path';
+import { existsSync } from 'node:fs';
 
 import type { ResolvedConfig } from './config';
 import type { ToolPaths } from './toolchain';
@@ -355,6 +356,14 @@ class ProjectTreeProviderImpl implements ProjectTreeProvider {
       tooltip: 'Destino de compilación (`[build].target`).',
     });
     nodes.push({
+      kind: 'file',
+      label: 'rsharp.lock',
+      description: lockDescription(config.projectRoot),
+      tooltip:
+        'Bloqueo de versiones y hashes (spec §3 y §9). Si el sugar cambia, ' +
+        'los bloqueos afectados quedan invalidados.',
+      path: lockPath(config.projectRoot),
+    });    nodes.push({
       kind: 'info',
       label: 'Perfil',
       description: config.profile,
@@ -467,4 +476,15 @@ class ProjectTreeProviderImpl implements ProjectTreeProvider {
  */
 export function createProjectTree(deps: TreeDependencies): ProjectTreeProvider {
   return new ProjectTreeProviderImpl(deps);
+}
+
+/** Ruta del archivo de bloqueo de un proyecto. */
+function lockPath(projectRoot: string): string {
+  return path.join(projectRoot, 'rsharp.lock');
+}
+
+/** Descripción del bloqueo según exista o no. */
+function lockDescription(projectRoot: string): string {
+  const file = lockPath(projectRoot);
+  return existsSync(file) ? 'presente' : 'no encontrado';
 }

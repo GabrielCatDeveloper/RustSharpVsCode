@@ -45,6 +45,7 @@ import { parseCargoOutput } from './rustc-parser';
 import { RSharpSession, SESSION_FILE_NAME } from './session';
 import { createStatusBar } from './statusbar';
 import { resolveRustLocation } from './sourcemap';
+import { LOCK_FILE_NAME, inspectLock } from './lock';
 import { runInTerminal as runProgramInTerminal } from './terminal';
 import { createProjectTree } from './treeview';
 import { resolveToolchain, type ToolPaths } from './toolchain';
@@ -202,6 +203,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('rsharp.debugRust', () => startDebugSession(state, output)),
     vscode.commands.registerCommand('rsharp.runCsharp', () => runCsharpProgram(state, output)),
     vscode.commands.registerCommand('rsharp.buildCsharp', () => buildCsharpProject(state, output)),
+    vscode.commands.registerCommand('rsharp.showLock', () => showLockFile(state, output)),
     vscode.commands.registerCommand('rsharp.toggleRustDetail', () => {
       state.showRustDetail = !state.showRustDetail;
       void vscode.window.showInformationMessage(
@@ -717,6 +719,66 @@ async function showToolchainStatus(state: ExtensionState): Promise<void> {
   if (choice === 'Abrir ajustes') {
     await vscode.commands.executeCommand('workbench.action.openSettings', 'rsharp');
   }
+}
+
+/**
+ * `R#: Show Lock File`: muestra el estado del archivo de bloqueo.
+ *
+ * El bloqueo fija las versiones de crates y librerías y el hash del sugar
+ * (spec §3 y §9). Si el sugar cambió, los bloqueos afectados quedan
+ * invalidados y hay que regenerarlos: la extensión lo avisa.
+ */
+async function showLockFile(
+  state: ExtensionState,
+  output: vscode.OutputChannel,
+): Promise<void> {
+  const config = state.config;
+  if (!config) {
+    void vscode.window.showInformationMessage(
+      'R#: no hay un proyecto R# activo (falta rsharp.toml).',
+    );
+    return;
+  }
+
+  const lockPath = path.join(config.projectRoot, LOCK_FILE_NAME);
+  let text: string | undefined;
+  try {
+    text = fs.readFileSync(lockPath, 'utf8');
+  } catch {
+    text = undefined;
+  }
+
+  const sugar = config.toml?.sugar ?? {
+    strings: 'utf8',
+    overflow: 'panic',
+    reentrancy: 'panic',
+    finalizers: 'deterministic',
+    cycles: 'weak-attribute',
+  };
+
+  const inspection = inspectLock(text, sugar);
+  output.appendLine(`R#: ${inspection.message}`);
+  for (const item of inspection.affected) {
+    output.appendLine(`    - ${item}`);
+  }
+
+  if (inspection.status === 'stale') {
+    const choice = await vscode.window.showWarningMessage(
+      inspection.message,
+      'Abrir rsharp.lock',
+    );
+    if (choice === 'Abrir rsharp.lock') {
+      await vscode.window.showTextDocument(vscode.Uri.file(lockPath));
+    }
+    return;
+  }
+
+  if (text === undefined) {
+    void vscode.window.showInformationMessage(inspection.message);
+    return;
+  }
+
+  await vscode.window.showTextDocument(vscode.Uri.file(lockPath));
 }
 
 /**

@@ -22,10 +22,11 @@ que TypeScript hace con el JavaScript generado.
 .
 ├── rsharp-spec.md          Especificación técnica de R# (fuente de verdad)
 ├── package.json            Raíz del monorepo (npm workspaces)
-├── docs/                   Documentación de la extensión
+├── docs/                   Documentación
 │   ├── EXTENSION.md        Tutorial: qué se puede y qué no se puede hacer
 │   ├── ARCHITECTURE.md     Módulos, capas y flujos
-│   └── CLI-CONTRACT.md     Contrato que debe cumplir la CLI `rsharp`
+│   ├── CLI-CONTRACT.md     Contrato que debe cumplir la CLI `rsharp`
+│   └── decisions/          Las 8 decisiones abiertas de la spec (§19), resueltas
 ├── ai/                     Parte de IA: cómo se desarrolla el proyecto
 │   ├── README.md           Flujo "IA implementa → IA principal revisa"
 │   ├── ROADMAP.md          Roadmap del proyecto R# por fases

@@ -130,7 +130,7 @@ del agente principal (ver `ai/REVIEW.md`).
 > una escribe un documento corto en `docs/decisions/` y actualiza la spec.
 
 ### T-OPEN-001 · Sintaxis de `#codeGenAI` compatible con Roslyn
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 0
 - **Depende de:** —
@@ -141,10 +141,10 @@ del agente principal (ver `ai/REVIEW.md`).
   - Justifica la opción elegida con criterios de Roslyn, IntelliSense y herramientas.
   - La spec deja de marcar este punto como ABIERTO y apunta a la decisión.
   - El bloque sigue siendo visible como contrato en el código (spec §8.3).
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Resuelto en `docs/decisions/0001-codeGenAI-syntax.md`: se adopta `#if RSHARP_AI` + `#if codeGenAI(...)` … `#endif`.
 
 ### T-OPEN-002 · Lista exacta de tipos de la BCL v1
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 0
 - **Depende de:** —
@@ -155,10 +155,10 @@ del agente principal (ver `ai/REVIEW.md`).
   - Para cada tipo indica el destino nativo y el destino WASM (soportado o no).
   - Documenta cómo crece la lista en cada versión (spec §10).
   - La spec deja de marcar este punto como ABIERTO.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Resuelto en `docs/decisions/0002-bcl-v1-types.md`: lista cerrada de tipos y APIs de `System.*` con su equivalente en Rust nativo y WASM.
 
 ### T-OPEN-003 · Subconjunto exacto de C# del núcleo v1
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 0
 - **Depende de:** —
@@ -168,10 +168,10 @@ del agente principal (ver `ai/REVIEW.md`).
   - La lista cubre, como mínimo, lo de §8.1: `struct`, `class`, `enum`, `interface`, genéricos, herencia, `virtual`/`override`, sobrecarga, argumentos opcionales, eventos, delegados, excepciones, conversiones implícitas, `partial`, `async`/`await`, hilos, `unsafe` y punteros.
   - Cada construcción fuera de la lista tiene una regla de rechazo (error, no silencio).
   - La spec deja de marcar este punto como ABIERTO.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Resuelto en `docs/decisions/0003-core-v1-subset.md`: 82 construcciones clasificadas (soportada / parcial / rechazada).
 
 ### T-OPEN-004 · Sintaxis de `[Weak]`, `[Borrowed]` y `[Owned]`
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 0
 - **Depende de:** —
@@ -182,10 +182,10 @@ del agente principal (ver `ai/REVIEW.md`).
   - `[Weak]` rompe los ciclos con `Weak`; `[Borrowed]` no libera; `[Owned]` libera en el destino.
   - Fija el texto del aviso `R#0042` asociado (spec §8.2).
   - La spec deja de marcar este punto como ABIERTO.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Resuelto en `docs/decisions/0004-lifetime-attributes.md`: `[Weak]` (campos), `[Borrowed]` y `[Owned]` (parámetros y retornos) como atributos sin argumentos.
 
 ### T-OPEN-005 · Formato del source map
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 0
 - **Depende de:** —
@@ -196,10 +196,10 @@ del agente principal (ver `ai/REVIEW.md`).
   - Cubre archivos Rust generados y archivos `.rsh` de origen, con líneas 1-based.
   - Define la granularidad mínima (línea) y si se admite columna.
   - La spec deja de marcar este punto como ABIERTO.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Resuelto en `docs/decisions/0005-source-map-format.md`: línea a línea, con resolución por «la entrada más cercana anterior».
 
 ### T-OPEN-006 · Esquema JSON completo de `rsharp.toml`
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 0
 - **Depende de:** —
@@ -210,10 +210,10 @@ del agente principal (ver `ai/REVIEW.md`).
   - Define los valores admitidos y los por defecto de cada clave.
   - La clave de API del proveedor de IA "vive en una variable de entorno" (spec §9): se documenta el nombre.
   - La spec deja de marcar este punto como ABIERTO.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Resuelto en `docs/decisions/0006-rsharp-toml-schema.md`: esquema JSON draft-07 en `extension/schemas/rsharp.schema.json`, publicado por la extensión.
 
 ### T-OPEN-007 · Flujo de `rsharp bind` por cada origen
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 0
 - **Depende de:** —
@@ -224,10 +224,10 @@ del agente principal (ver `ai/REVIEW.md`).
   - Cubre los cuatro orígenes de §13: C, Python, .NET y Java.
   - Define qué se guarda en `bindings/`, qué hash va a `rsharp.lock` y cómo se avisa de un cambio de API.
   - La spec deja de marcar este punto como ABIERTO.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Resuelto en `docs/decisions/0007-bind-flow.md`: siete orígenes; el FFI se parece al de C# (`[DllImport]`, `[ForeignAssembly]`…).
 
 ### T-OPEN-008 · Estrategia de pruebas diferenciales
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 0
 - **Depende de:** —
@@ -237,7 +237,7 @@ del agente principal (ver `ai/REVIEW.md`).
   - Define el corpus de casos, el formato de comparación y el treatment de las diferencias conocidas (UTF-16, desbordamiento, reentrada, finalizadores).
   - Define qué se hace cuando el caso no es equivalente por diseño (sugar).
   - La spec deja de marcar este punto como ABIERTO.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Resuelto en `docs/decisions/0008-differential-testing.md`: tres niveles (banco de casos, diferencial .NET ↔ Rust, casos generados).
 
 ---
 
@@ -706,6 +706,33 @@ del agente principal (ver `ai/REVIEW.md`).
   - El Rust generado sigue oculto salvo que el usuario lo pida (`srcOut`).
   - El artefacto se clasifica (nativo, WASM, biblioteca) y la interfaz explica qué se puede hacer con él.
 - **Notas de la revisión:** 196/196 pruebas de la extensión, incluida una que compila el ejemplo con Roslyn y comprueba que el PDB contiene los `.rsh`. Verificado además con una instancia real de VSCode (activación correcta y detección de `~/.dotnet/dotnet`).
+
+
+### T-VSCD-018 · Esquema JSON de `rsharp.toml` publicado en la extensión
+- **Estado:** DONE
+- **Ejecutor:** MiniMax M3.1 Flash (esquema) + revisión del agente principal
+- **Fase:** Fase 0 (implementa T-OPEN-006)
+- **Depende de:** T-OPEN-006
+- **Objetivo:** Validar y autocompletar `rsharp.toml` en el editor con un esquema JSON.
+- **Archivos:** `extension/schemas/rsharp.schema.json`, `extension/package.json`
+- **Criterios de aceptación:**
+  - El esquema describe todas las tablas de la spec §9.
+  - La extensión lo publica con `contributes.jsonValidation` para `rsharp.toml`.
+  - El esquema acepta el `rsharp.toml` del ejemplo y el de la spec.
+- **Notas de la revisión:** Verificado con `ajv` (draft-07) contra tres TOML reales: el del ejemplo (21 claves), el de la spec §9 (40) y el del test (41). Todas cubiertas, ninguna rechazada.
+
+### T-VSCD-019 · Soporte de `rsharp.lock`
+- **Estado:** DONE
+- **Ejecutor:** agente principal + revisión del agente principal
+- **Fase:** Fase 2
+- **Depende de:** T-VSCD-014
+- **Objetivo:** Leer el archivo de bloqueo y avisar cuando el cambio de sugar invalida los bloqueos afectados (spec §3 y §9).
+- **Archivos:** `extension/src/lock.ts`, `extension/src/extension.ts`, `extension/src/treeview.ts`, `extension/src/test/lock.test.ts`, `examples/rsharp-demo/rsharp.lock`
+- **Criterios de aceptación:**
+  - `R#: Show Lock File` muestra el estado del bloqueo y abre el fichero.
+  - Si el hash del sugar no coincide, se avisa de qué bloqueos quedan invalidados.
+  - La vista lateral muestra si el bloqueo existe.
+- **Notas de la revisión:** Formato JSON (como `package-lock.json`). El hash se calcula sobre la forma canónica del sugar, de modo que reordenar el TOML no lo invalida.
 
 ### T-VSCD-015 · Documentación de la extensión
 - **Estado:** DONE

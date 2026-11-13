@@ -28,7 +28,7 @@ Roadmap completo del **proyecto R#**, no solo de la extensión de VSCode.
 
 | Fase | Nombre | Estado | Progreso | Tareas |
 |---|---|---|---|---|
-| 0 | Fundación | **In progress** | Spec y decisiones abiertas identificadas; falta cerrar §19 | `T-FND-001..006`, `T-OPEN-001..008` |
+| 0 | Fundación | **Done** | Las 8 decisiones de §19 resueltas en `docs/decisions/`; falta el esquema de `rsharp.lock` | `T-FND-001..006`, `T-OPEN-001..008` |
 | 1 | Núcleo del transpilador | **Todo** | Sin implementar | `T-CORE-001..016` |
 | 2 | Extensión de VSCode | **Done** | 15/15 tareas cerradas; 185 pruebas; verificado en una instancia real de VSCode | `T-VSCD-001..015` |
 | 3 | BCL por destino | **Todo** | — | `T-BCL-001..006` |

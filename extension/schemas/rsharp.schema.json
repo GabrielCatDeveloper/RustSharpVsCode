@@ -1,0 +1,453 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/GabrielCatDev/RustSharpVsCode/main/extension/schemas/rsharp.schema.json",
+  "title": "R# (Rust#) — rsharp.toml",
+  "description": "Esquema del archivo de configuración `rsharp.toml` de un proyecto R# (spec §9). La extensión lee estas mismas claves: `extension/src/config.ts`. En la raíz se permiten claves desconocidas para no romper proyectos que usen extensiones futuras; las sub-tablas descritas aquí son estrictas (`additionalProperties: false`) yAvisan si contienen una clave que la extensión no entiende.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "schema": {
+      "type": "number",
+      "const": 1,
+      "title": "Versión del esquema",
+      "description": "Versión del esquema de `rsharp.toml`. Solo existe la versión 1. Si el valor es otro, la extensión avisa (`El esquema de \"rsharp.toml\" es N y se esperaba 1`) y continúa interpretando el archivo con el esquema actual.",
+      "default": 1,
+      "examples": [1]
+    },
+    "project": {
+      "description": "Sección `[project]`: identidad del proyecto. Si se omite, se usan los valores por defecto.",
+      "allOf": [{ "$ref": "#/definitions/projectTable" }],
+      "examples": [{ "name": "mi_app" }]
+    },
+    "paths": {
+      "description": "Sección `[paths]`: carpetas de trabajo del proyecto. Tiene prioridad sobre los ajustes `rsharp.outputDir` y `rsharp.distDir` de VSCode (spec §14.4).",
+      "allOf": [{ "$ref": "#/definitions/pathsTable" }],
+      "examples": [{ "output": "target/rsharp", "dist": "dist" }]
+    },
+    "build": {
+      "description": "Sección `[build]`: destino y perfil de compilación. Tiene prioridad sobre los ajustes `rsharp.target` y `rsharp.profile` de VSCode.",
+      "allOf": [{ "$ref": "#/definitions/buildTable" }],
+      "examples": [{ "target": "native", "profile": "debug" }]
+    },
+    "sugar": {
+      "description": "Sección `[sugar]`: concesiones explícitas del programador. Sin configuración el sugar queda apagado y el compilador avisa (diagnóstico `R#0042`) cuando el código lo exige.",
+      "allOf": [{ "$ref": "#/definitions/sugarTable" }],
+      "examples": [
+        {
+          "strings": "utf8",
+          "overflow": "panic",
+          "reentrancy": "panic",
+          "finalizers": "deterministic",
+          "cycles": "weak-attribute"
+        }
+      ]
+    },
+    "ai": {
+      "description": "Sección `[ai]`: alternativa a `[sugar.ai]`. La extensión usa `[sugar.ai]` si existe; si no, recurre a esta tabla. Se mantiene por compatibilidad con configuraciones antiguas.",
+      "allOf": [{ "$ref": "#/definitions/aiTable" }],
+      "examples": [{ "enabled": false, "provider": "none" }]
+    },
+    "plugins": {
+      "description": "Lista ordenada de plugins. Un plugin reescribe construcciones de R# avanzado a R# del núcleo; el orden es explícito y la optimización de programa completo se ejecuta después de los plugins (spec §16). La extensión acepta la forma de lista (`plugins = [\"uno\", \"dos\"]`) y la forma de tabla (`[plugins]` con la clave `list`).",
+      "oneOf": [
+        {
+          "type": "array",
+          "description": "Lista de plugins en el orden en que se aplican.",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Nombre o ruta del plugin."
+          }
+        },
+        {
+          "type": "object",
+          "description": "Forma de tabla: `[plugins]` con `list = [...]`.",
+          "additionalProperties": false,
+          "properties": {
+            "list": {
+              "type": "array",
+              "description": "Lista de plugins en el orden en que se aplican.",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Nombre o ruta del plugin."
+              }
+            }
+          }
+        }
+      ],
+      "default": []
+    },
+    "dependencies": {
+      "type": "object",
+      "description": "Sección `[dependencies]`: crates de Rust que usa el proyecto. Se copia al `Cargo.toml` generado.",
+      "propertyNames": {
+        "description": "Nombre del crate.",
+        "pattern": "^[A-Za-z0-9_-]+$"
+      },
+      "additionalProperties": {
+        "description": "Versión del crate como cadena, o tabla en línea con los detalles de la dependencia.",
+        "oneOf": [
+          {
+            "type": "string",
+            "description": "Versión del crate.",
+            "examples": ["1.0"]
+          },
+          { "$ref": "#/definitions/dependencyTable" }
+        ]
+      },
+      "default": {}
+    },
+    "foreign": {
+      "type": "object",
+      "description": "Sección `[foreign]`: librerías externas (FFI). Cada sub-tabla `[foreign.<nombre>]` describe un enlace.",
+      "propertyNames": {
+        "description": "Nombre del enlace.",
+        "pattern": "^[A-Za-z0-9_.-]+$"
+      },
+      "additionalProperties": { "$ref": "#/definitions/foreignBinding" },
+      "default": {}
+    },
+    "profile": {
+      "type": "object",
+      "description": "Sección `[profile.<nombre>]`: ajustes propios de un perfil de compilación. El nombre del perfil es dinámico; los perfiles conocidos son `debug` y `release`, y se seleccionan con `rsharp build --profile <nombre>`.",
+      "propertyNames": {
+        "description": "Nombre del perfil.",
+        "pattern": "^[A-Za-z0-9_-]+$"
+      },
+      "additionalProperties": { "$ref": "#/definitions/profileSection" },
+      "default": {}
+    }
+  },
+  "definitions": {
+    "projectTable": {
+      "type": "object",
+      "description": "Sección `[project]`: identidad del proyecto.",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Nombre del proyecto. Se usa en el `Cargo.toml` generado y en los mensajes de la extensión. Por defecto, el nombre de la carpeta que contiene el `rsharp.toml`.",
+          "examples": ["mi_app"]
+        }
+      }
+    },
+    "pathsTable": {
+      "type": "object",
+      "description": "Sección `[paths]`: carpetas de trabajo. Las rutas son relativas a la carpeta que contiene el `rsharp.toml`.",
+      "additionalProperties": false,
+      "properties": {
+        "output": {
+          "type": "string",
+          "description": "Carpeta donde se genera el Rust (archivos `.rs`, `Cargo.toml` y `.gitignore`). Por defecto `target/rsharp`. No debe ser la misma carpeta que `dist`.",
+          "default": "target/rsharp",
+          "examples": ["target/rsharp", "gen"]
+        },
+        "dist": {
+          "type": "string",
+          "description": "Carpeta donde `cargo` compila el binario final (se usa como `--target-dir`). Por defecto `dist`. No debe ser la misma carpeta que `output`.",
+          "default": "dist",
+          "examples": ["dist", "bin"]
+        }
+      }
+    },
+    "buildTable": {
+      "type": "object",
+      "description": "Sección `[build]`: destino y perfil de compilación.",
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "type": "string",
+          "enum": ["native", "wasm32-unknown-unknown", "wasm32-wasip1"],
+          "description": "Destino de compilación. `native` produce un ejecutable; `wasm32-unknown-unknown` produce un `.wasm` para navegador; `wasm32-wasip1` produce un `.wasm` para WASI. Por defecto `native`.",
+          "default": "native",
+          "examples": ["native", "wasm32-unknown-unknown", "wasm32-wasip1"]
+        },
+        "profile": {
+          "type": "string",
+          "enum": ["debug", "release"],
+          "description": "Perfil de compilación por defecto; equivale a `rsharp build --profile <perfil>`. Un perfil puede añadir overrides de sugar en `[profile.<nombre>.sugar]`. Por defecto `debug`.",
+          "default": "debug",
+          "examples": ["debug", "release"]
+        }
+      }
+    },
+    "sugarTable": {
+      "type": "object",
+      "description": "Sección `[sugar]`: concesiones explícitas del programador. Cada valor se puede sobrescribir por archivo o por método con `[assembly: RSharpSugar(\"clave\", \"valor\")]`; gana el ámbito más cercano al código.",
+      "additionalProperties": false,
+      "properties": {
+        "strings": {
+          "type": "string",
+          "enum": ["utf8", "utf16"],
+          "description": "Representación interna de `string`. `utf8` usa `Rc<str>` o `String` y es más rápido; `utf16` conserva la semántica de C# en `Length` y `s[i]` (cada `char` es un código UTF-16) y genera conversiones. Por defecto `utf8`.",
+          "default": "utf8",
+          "examples": ["utf8", "utf16"]
+        },
+        "overflow": {
+          "type": "string",
+          "enum": ["panic", "wrap", "checked"],
+          "description": "Comportamiento ante desbordamiento aritmético. `panic` aborta como Rust en depuración; `wrap` genera `wrapping_*` y envuelve igual que C#; `checked` genera `checked_*` y devuelve error en desbordamiento. Por defecto `panic`.",
+          "default": "panic",
+          "examples": ["panic", "wrap", "checked"]
+        },
+        "reentrancy": {
+          "type": "string",
+          "enum": ["panic", "serialize"],
+          "description": "Comportamiento ante reentrada en un objeto `Rc<RefCell<T>>`. `panic` aborta ante un segundo `borrow_mut`; `serialize` serializa los accesos para evitar el pánico, con coste de rendimiento. Por defecto `panic`.",
+          "default": "panic",
+          "examples": ["panic", "serialize"]
+        },
+        "finalizers": {
+          "type": "string",
+          "enum": ["deterministic", "gc-like"],
+          "description": "Comportamiento de los finalizadores. `deterministic` usa `Drop`, con orden y momento previsibles; `gc-like` imita al recolector de C#, que no es determinista. Por defecto `deterministic`.",
+          "default": "deterministic",
+          "examples": ["deterministic", "gc-like"]
+        },
+        "cycles": {
+          "type": "string",
+          "enum": ["weak-attribute", "leak"],
+          "description": "Tratamiento de ciclos de referencias. `weak-attribute` usa `Weak` en los campos marcados con `[Weak]`; `leak` permite la fuga de memoria (equivalente a `GC.KeepAlive`). Por defecto `weak-attribute`.",
+          "default": "weak-attribute",
+          "examples": ["weak-attribute", "leak"]
+        },
+        "ai": {
+          "description": "Sub-tabla `[sugar.ai]`: ajustes de los bloques `#codeGenAI`. El núcleo nunca usa IA; sin esta sección los bloques `#codeGenAI` se rechazan.",
+          "allOf": [{ "$ref": "#/definitions/aiTable" }]
+        }
+      }
+    },
+    "sugarOverrides": {
+      "type": "object",
+      "description": "Overrides de sugar de un perfil (`[profile.<nombre>.sugar]`). Solo se cambian las claves presentes; el resto conserva el valor de `[sugar]`.",
+      "additionalProperties": false,
+      "properties": {
+        "strings": {
+          "type": "string",
+          "enum": ["utf8", "utf16"],
+          "description": "Representación interna de `string`. `utf8` usa `Rc<str>` o `String` y es más rápido; `utf16` conserva la semántica de C# en `Length` y `s[i]` (cada `char` es un código UTF-16) y genera conversiones. Por defecto (en `[sugar]`) `utf8`.",
+          "default": "utf8",
+          "examples": ["utf8", "utf16"]
+        },
+        "overflow": {
+          "type": "string",
+          "enum": ["panic", "wrap", "checked"],
+          "description": "Comportamiento ante desbordamiento aritmético. `panic` aborta como Rust en depuración; `wrap` genera `wrapping_*` y envuelve igual que C#; `checked` genera `checked_*` y devuelve error en desbordamiento. Por defecto (en `[sugar]`) `panic`.",
+          "default": "panic",
+          "examples": ["panic", "wrap", "checked"]
+        },
+        "reentrancy": {
+          "type": "string",
+          "enum": ["panic", "serialize"],
+          "description": "Comportamiento ante reentrada en un objeto `Rc<RefCell<T>>`. `panic` aborta ante un segundo `borrow_mut`; `serialize` serializa los accesos para evitar el pánico, con coste de rendimiento. Por defecto (en `[sugar]`) `panic`.",
+          "default": "panic",
+          "examples": ["panic", "serialize"]
+        },
+        "finalizers": {
+          "type": "string",
+          "enum": ["deterministic", "gc-like"],
+          "description": "Comportamiento de los finalizadores. `deterministic` usa `Drop`, con orden y momento previsibles; `gc-like` imita al recolector de C#, que no es determinista. Por defecto (en `[sugar]`) `deterministic`.",
+          "default": "deterministic",
+          "examples": ["deterministic", "gc-like"]
+        },
+        "cycles": {
+          "type": "string",
+          "enum": ["weak-attribute", "leak"],
+          "description": "Tratamiento de ciclos de referencias. `weak-attribute` usa `Weak` en los campos marcados con `[Weak]`; `leak` permite la fuga de memoria (equivalente a `GC.KeepAlive`). Por defecto (en `[sugar]`) `weak-attribute`.",
+          "default": "weak-attribute",
+          "examples": ["weak-attribute", "leak"]
+        }
+      }
+    },
+    "aiTable": {
+      "type": "object",
+      "description": "Ajustes de la IA para los bloques `#codeGenAI`.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Habilita los bloques `#codeGenAI`. Si es `false`, el compilador rechaza cualquier bloque `#codeGenAI`. Por defecto `false`.",
+          "default": false
+        },
+        "provider": {
+          "type": "string",
+          "enum": ["ollama", "openai-compatible", "none"],
+          "description": "Proveedor del modelo. `ollama` usa un modelo local; `openai-compatible` usa cualquier API con ese formato (una URL remota es una opción); `none` desactiva la IA. Por defecto `none`.",
+          "default": "none",
+          "examples": ["ollama", "openai-compatible", "none"]
+        },
+        "endpoint": {
+          "description": "URL base del servidor de IA. Debe ser una URI (`http://`, `https://`). Puede quedar vacía si el proveedor no la necesita. Por defecto `\"\"` (sin servidor).",
+          "anyOf": [
+            { "type": "string", "format": "uri", "minLength": 1 },
+            { "type": "string", "const": "" }
+          ],
+          "default": "",
+          "examples": ["http://localhost:11434", "https://api.ejemplo.local/v1"]
+        },
+        "model": {
+          "type": "string",
+          "description": "Nombre del modelo que se usa en los bloques `#codeGenAI`. Por defecto `\"\"` (lo decide el proveedor).",
+          "default": "",
+          "examples": ["qwen2.5-coder"]
+        },
+        "lock": {
+          "type": "string",
+          "description": "Archivo donde se guardan los resultados de la IA, sus hashes y las versiones fijadas. Un cambio en el hash invalida y regenera solo los bloques afectados. Por defecto `rsharp.lock`.",
+          "default": "rsharp.lock",
+          "examples": ["rsharp.lock"]
+        },
+        "max_tokens_per_block": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Tope de tokens por bloque `#codeGenAI`. El coste en tokens se muestra antes de generar. Por defecto `4000`.",
+          "default": 4000,
+          "examples": [4000]
+        },
+        "maxTokensPerBlock": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Alias en camelCase de `max_tokens_per_block`. La extensión acepta las dos formas; si están las dos, manda `max_tokens_per_block`. Por defecto `4000`.",
+          "default": 4000
+        }
+      }
+    },
+    "dependencyTable": {
+      "type": "object",
+      "description": "Detalles de una dependencia, con la forma de Cargo.",
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "Versión del crate.",
+          "examples": ["0.8"]
+        },
+        "features": {
+          "type": "array",
+          "description": "Features del crate que se activan.",
+          "items": { "type": "string" },
+          "examples": [["small_rng"]]
+        },
+        "default-features": {
+          "type": "boolean",
+          "description": "Desactiva las features por defecto del crate. Por defecto `true` (se mantienen).",
+          "default": true
+        },
+        "optional": {
+          "type": "boolean",
+          "description": "Marca la dependencia como opcional. Por defecto `false`.",
+          "default": false
+        },
+        "path": {
+          "type": "string",
+          "description": "Ruta a un crate local del proyecto, en lugar de una versión publicada."
+        },
+        "git": {
+          "type": "string",
+          "description": "URL del repositorio git del crate."
+        },
+        "tag": {
+          "type": "string",
+          "description": "Etiqueta git concreta del crate."
+        },
+        "branch": {
+          "type": "string",
+          "description": "Rama git del crate."
+        },
+        "rev": {
+          "type": "string",
+          "description": "Revisión git exacta del crate."
+        }
+      },
+      "additionalProperties": true
+    },
+    "foreignBinding": {
+      "type": "object",
+      "description": "Sección `[foreign.<nombre>]`: enlace con una librería externa (FFI).",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["native", "c-header", "dotnet", "python", "java"],
+          "description": "Origen de la librería. `native` es una DLL nativa (C o C++); `c-header` es una cabecera C de la que se generan bindings con `bindgen`; `dotnet` es un ensamblado de .NET; `python` es un módulo de Python (`pyo3`); `java` es una clase Java (`jni`). Por defecto `native`.",
+          "default": "native",
+          "examples": ["native", "c-header", "dotnet", "python", "java"]
+        },
+        "path": {
+          "type": "string",
+          "description": "Ruta de la biblioteca (`.dll`, `.so`, `.dylib`) o del ensamblado de .NET. Por defecto no hay ninguna: la ruta necesaria depende de `kind`.",
+          "examples": ["libs/mylib.dll"]
+        },
+        "header": {
+          "type": "string",
+          "description": "Ruta de la cabecera C desde la que se generan los bindings (`rsharp bind --c <cabecera>`). Solo tiene sentido con `kind = \"c-header\"`.",
+          "examples": ["libs/mylib.h"]
+        },
+        "link": {
+          "type": "string",
+          "enum": ["static", "dynamic", "auto"],
+          "description": "Tipo de enlace. `static` enlaza en tiempo de compilación; `dynamic` carga la biblioteca en tiempo de ejecución; `auto` deja que el compilador decida. Por defecto `auto`.",
+          "default": "auto",
+          "examples": ["static", "dynamic", "auto"]
+        },
+        "version": {
+          "type": "string",
+          "description": "Versión exigida de la librería, con sintaxis de rango (por ejemplo `>=1.26`).",
+          "examples": [">=1.26"]
+        }
+      }
+    },
+    "profileSection": {
+      "type": "object",
+      "description": "Ajustes de un perfil de compilación.",
+      "additionalProperties": false,
+      "properties": {
+        "sugar": {
+          "description": "Overrides de sugar del perfil (`[profile.<nombre>.sugar]`). Solo se cambian las claves presentes; el resto conserva el valor de `[sugar]`.",
+          "allOf": [{ "$ref": "#/definitions/sugarOverrides" }]
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "schema": 1,
+      "project": { "name": "mi_app" },
+      "paths": { "output": "target/rsharp", "dist": "dist" },
+      "build": { "target": "native", "profile": "debug" },
+      "sugar": {
+        "strings": "utf8",
+        "overflow": "panic",
+        "reentrancy": "panic",
+        "finalizers": "deterministic",
+        "cycles": "weak-attribute",
+        "ai": {
+          "enabled": false,
+          "provider": "ollama",
+          "endpoint": "http://localhost:11434",
+          "model": "qwen2.5-coder",
+          "lock": "rsharp.lock",
+          "max_tokens_per_block": 4000
+        }
+      },
+      "plugins": [],
+      "dependencies": {
+        "serde_json": "1.0",
+        "rand": { "version": "0.8", "features": ["small_rng"] }
+      },
+      "foreign": {
+        "mylib": {
+          "kind": "native",
+          "path": "libs/mylib.dll",
+          "header": "libs/mylib.h",
+          "link": "dynamic"
+        },
+        "numpy": { "kind": "python", "version": ">=1.26" }
+      },
+      "profile": {
+        "release": { "sugar": { "overflow": "wrap" } }
+      }
+    }
+  ]
+}
