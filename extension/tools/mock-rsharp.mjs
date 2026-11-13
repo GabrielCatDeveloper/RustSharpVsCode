@@ -917,7 +917,9 @@ function main(argv) {
       if (result.textFirst) {
         process.stdout.write(`${result.textFirst}\n`);
       }
-      process.stdout.write(`${result.text}\n`);
+      // Sin duplicar el salto de línea final.
+      const text = result.text ?? '';
+      process.stdout.write(text.endsWith('\n') ? text : `${text}\n`);
     }
     return result.envelope.ok ? 0 : 1;
   } catch (error) {

@@ -168,6 +168,62 @@ test('el proyecto de ejemplo se transpila, compila y ejecuta', () => {
   assert.match(execution.stdout, /fin/);
 });
 
+test('el compilador real (Roslyn) da el mismo resultado que el mini-transpilador', () => {
+  const realCli = path.join(
+    REPO_ROOT,
+    'compiler',
+    'src',
+    'RSharp.Cli',
+    'bin',
+    'Debug',
+    'net8.0',
+    'rsharp',
+  );
+
+  if (!fs.existsSync(realCli)) {
+    // El compilador real no está compilado: no es un fallo.
+    return;
+  }
+
+  const environment = {
+    ...process.env,
+    DOTNET_ROOT: process.env.DOTNET_ROOT ?? path.join(os.homedir(), '.dotnet'),
+  };
+
+  const build = spawnSync(realCli, ['build', '--project', DEMO_PROJECT, '--json'], {
+    encoding: 'utf8',
+    cwd: DEMO_PROJECT,
+    env: environment,
+  });
+  const envelope = JSON.parse(build.stdout) as RSharpCliEnvelope;
+  assert.equal(envelope.ok, true, envelope.error?.message);
+  assert.equal(envelope.cargo?.exitCode, 0);
+
+  const artifact = envelope.artifact;
+  assert.ok(artifact, 'debe informarse del artefacto');
+
+  const execution = spawnSync(artifact, [], { encoding: 'utf8', cwd: DEMO_PROJECT });
+  assert.equal(execution.status, 0, execution.stderr);
+
+  // La salida debe coincidir con la del mini-transpilador.
+  const mock = spawnSync(
+    process.execPath,
+    [MOCK_CLI, 'run', '--project', DEMO_PROJECT],
+    { encoding: 'utf8', cwd: DEMO_PROJECT },
+  );
+  assert.equal(execution.stdout, mock.stdout);
+
+  // Y con la salida esperada.
+  const expected = fs.readFileSync(
+    path.join(DEMO_PROJECT, 'tests', 'expected-output.txt'),
+    'utf8',
+  );
+  assert.equal(
+    execution.stdout.replace(/\r\n/g, '\n').trim(),
+    expected.replace(/\r\n/g, '\n').trim(),
+  );
+});
+
 // ---------------------------------------------------------------------------
 // Compilación con Roslyn (el lado C#)
 // ---------------------------------------------------------------------------

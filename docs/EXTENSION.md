@@ -53,6 +53,7 @@ errores` o abre el Rust a mano con `R#: Open Generated Rust File`.
 | **.NET SDK 8 o superior** | Ejecutar la CLI `rsharp` (spec §4.4/§4.5) | Sí |
 | **Rust (`rustup` + `cargo`)** | Compilar el Rust generado | Sí, para `Build` |
 | **C# Dev Kit** (o el servidor de Roslyn) | Autocompletado, diagnóstico y **depuración** de `.rsh` | No, pero recomendado |
+| **.NET SDK 8+** | Compilar la CLI `rsharp` (el transpilador) | Sí, para transpilar |
 | **CodeLLDB** | Depuración del binario Rust (modo avanzado) | No, solo para `R#: Debug (Rust)` |
 
 ### Instalación de la extensión
@@ -492,11 +493,12 @@ compilador o para tocar a mano una parte), está a un clic:
 
 ---
 
-## 11. Probar la extensión sin el compilador R#
+## 11. Probar la extensión: con el compilador real o sin él
 
-El repositorio incluye una CLI de simulación que respeta el mismo contrato y
-un **mini-transpilador** (limitado al subconjunto del ejemplo) que genera Rust
-real a partir de los `.rsh`:
+El repositorio incluye **el compilador real** (`compiler/`, en C# con Roslyn)
+y, además, una CLI de simulación con un **mini-transpilador** (limitado al
+subconjunto del ejemplo) que genera Rust real a partir de los `.rsh`. Ambos
+hablan el mismo contrato, así que la extensión no distingue entre ellos.
 
 ```bash
 cd extension
@@ -523,10 +525,10 @@ código ejecutado por .NET y por Rust debe dar la misma salida):
 npm run demo
 ```
 
-> El mini-transpilador es un sustituto del compilador `RSharp.Cli`, que aún no
-> existe. Cuando exista, la CLI real implementará el contrato de
-> [`CLI-CONTRACT.md`](CLI-CONTRACT.md) y este ejemplo pasó a ser la prueba
-> diferencial del proyecto.
+> El mini-transpilador es un sustituto ligero del compilador real, útil para
+> probar sin .NET. El compilador real es `compiler/` (ver su README) y la
+> extensión lo encuentra solo si está compilado en el repositorio o instalado
+> en el `PATH`.
 
 ---
 

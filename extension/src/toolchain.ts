@@ -171,7 +171,23 @@ function rsharpExtraCandidates(env: NodeJS.ProcessEnv): string[] {
   }
   // Una herramienta de .NET puede dejar la DLL junto al ejecutable.
   candidates.push(path.join(dirs[0], 'rsharp.dll'));
+
+  // Desarrollo: el compilador del propio repositorio, si está compilado.
+  candidates.push(path.join(repoRoot(), 'compiler', 'src', 'RSharp.Cli', 'bin', 'Debug', 'net8.0', 'rsharp'));
+  candidates.push(path.join(repoRoot(), 'compiler', 'src', 'RSharp.Cli', 'bin', 'Release', 'net8.0', 'rsharp'));
+
   return candidates;
+}
+
+/**
+ * Raíz del repositorio, si la extensión se está ejecutando desde él.
+ *
+ * En desarrollo, la extensión vive en `<repo>/extension` y el compilador en
+ * `<repo>/compiler`. En una instalación normal la ruta no existe y, sencillamente,
+ * no se encontrará.
+ */
+function repoRoot(): string {
+  return path.resolve(__dirname, '..', '..');
 }
 
 /**
