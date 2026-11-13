@@ -52,8 +52,8 @@ errores` o abre el Rust a mano con `R#: Open Generated Rust File`.
 |---|---|---|
 | **.NET SDK 8 o superior** | Ejecutar la CLI `rsharp` (spec §4.4/§4.5) | Sí |
 | **Rust (`rustup` + `cargo`)** | Compilar el Rust generado | Sí, para `Build` |
-| **C# Dev Kit** (o el servidor de Roslyn) | Autocompletado y diagnóstico de C# en `.rsh` | No, pero recomendado |
-| **CodeLLDB** | Depuración a nivel de Rust | No, solo para `R#: Debug` |
+| **C# Dev Kit** (o el servidor de Roslyn) | Autocompletado, diagnóstico y **depuración** de `.rsh` | No, pero recomendado |
+| **CodeLLDB** | Depuración del binario Rust (modo avanzado) | No, solo para `R#: Debug (Rust)` |
 
 ### Instalación de la extensión
 
@@ -261,22 +261,80 @@ y ayuda. El fragmento de Rust **no** aparece.
 
 ### 5.3 Depuración (`R#: Debug`)
 
-La spec §14.5 pide CodeLLDB con source maps y deja la depuración para una
-versión posterior. Lo que hay hoy:
+Aquí está la clave de R#: **un `.rsh` es C# válido**, y Roslyn no distingue por
+la extensión del fichero. Si compilas el proyecto con `dotnet build`
+incluyendo los `.rsh` en `<Compile Include>`, el PDB guarda la ruta original y
+el depurador abre **el `.rsh` que escribiste**.
 
-1. `R#: Debug` comprueba que el binario esté compilado y que CodeLLDB esté
-   instalado (ofrece instalarlo si falta).
-2. Arranca una sesión `lldb` con el binario y la raíz del proyecto.
-3. **Los puntos de parada que pones en un `.rsh` se traducen** a la línea
-   equivalente del Rust generado usando los source maps de la última
+Por eso la extensión ofrece dos modos:
+
+#### Modo C# (el principal) — `R#: Debug`
+
+1. La extensión genera un `.csproj` que compila tus `.rsh` con Roslyn (en
+   `target/rsharp-cs/`).
+2. Compila con `dotnet build` y publica los errores de Roslyn **en el `.rsh`**
+   (sin source maps: el compilador ya da la ruta correcta).
+3. Arranca el depurador de .NET (vsdbg / C# Dev Kit) sobre el ensamblado.
+
+Lo que funciona, igual que en TypeScript:
+
+- los puntos de parada en el `.rsh` caen en la línea exacta;
+- las variables se ven con la semántica de C#;
+- el paso a paso y la pila de llamadas son de C#.
+
+Requisito: **C# Dev Kit** (o el depurador de .NET) instalado. Si no lo está, la
+extensión ofrece instalarlo y, si prefieres, cae al modo Rust.
+
+#### Modo Rust (avanzado) — `R#: Debug (Rust, CodeLLDB)`
+
+Para depurar **el binario de Rust** de verdad, con CodeLLDB:
+
+1. Arranca una sesión `lldb` con el binario compilado.
+2. Los puntos de parada que pones en un `.rsh` se traducen a la línea
+   equivalente del Rust generado con los source maps de la última
    transpilación.
+3. El remapeo de rutas `.rsh` → `.rs` (`target.source-map` de LLDB) hace que
+   el depurador encuentre el fichero.
 
-Limitación honesta: LLDB no tiene un mecanismo de source maps de línea como el
-de TypeScript con Node, así que **el depurador abre el fichero Rust**. La
-experiencia cómoda sin Rust es la de `R#: Run` (§5.1). Si prefieres el
-depurador, usa `R#: Open Generated Rust File` para tener el Rust a mano.
+Limitación honesta: LLDB no tiene source maps de línea como el de Node con
+TypeScript, así que **el depurador abre el fichero Rust** y el punto de parada
+se sitúa en la línea equivalente más cercana. Para la experiencia cómoda sin
+Rust, usa el modo C#.
 
-### 5.4 Ajustes que afectan a esta experiencia
+### 5.4 Ejecutar (`R#: Run` y `R#: Run (C#)`)
+
+| Comando | Qué ejecuta | Cuándo usarlo |
+|---|---|---|
+| `R#: Run` | El binario **Rust** | Es el producto: validas lo que se entrega |
+| `R#: Run (C#)` | El ensamblado de .NET | Iteración rápida y semántica de C# |
+
+Ambos usan el mismo seudoterminal `R#`, así que la salida se ve igual y los
+pánicos se traducen al `.rsh`.
+
+Y el resultado de Rust se clasifica, porque Rust es flexible: un mismo
+proyecto puede dar un ejecutable, un módulo WebAssembly o una biblioteca. La
+extensión no asume que siempre hay un `.exe`:
+
+| Artefacto | Qué hace la extensión |
+|---|---|
+| Ejecutable nativo | Lo ejecuta en la terminal `R#` |
+| Módulo `.wasm` | Explica que no se ejecuta como programa y ofrece abrirlo |
+| Biblioteca (`.dll`, `.so`, `.dylib`) | Explica que se enlaza, no se ejecuta |
+
+### 5.5 El Rust generado (srcOut)
+
+El Rust generado es un producto intermedio (§1), así que **no se muestra** por
+defecto: los errores se publican en el `.rsh` y el panel de salida `R#` guarda
+el detalle.
+
+Cuando quieras leerlo (para revisar la traducción, para informar de un bug del
+compilador o para tocar a mano una parte), está a un clic:
+
+- `R#: Ver el Rust generado (srcOut)` → abre el fichero Rust generado.
+- `R#: Copiar el Rust generado (srcOut)` → lo copia al portapapeles.
+- La vista lateral **R# Project** lista los ficheros Rust generados.
+
+### 5.6 Ajustes que afectan a esta experiencia
 
 | Ajuste | Efecto |
 |---|---|
@@ -301,12 +359,15 @@ depurador, usa `R#: Open Generated Rust File` para tener el Rust a mano.
 | R#: Show Output | `rsharp.showOutput` | Abre el panel de salida `R#` |
 | R#: Select Build Target | `rsharp.selectTarget` | Elige destino (native / wasm) |
 | R#: Select Build Profile | `rsharp.selectProfile` | Elige perfil (debug / release) |
-| R#: Open Generated Rust File | `rsharp.openGeneratedRust` | Abre el Rust generado (a pedido) |
-| R#: Copy Generated Rust File | `rsharp.copyGeneratedRust` | Copia el Rust generado al portapapeles |
+| R#: Ver el Rust generado (srcOut) | `rsharp.openGeneratedRust` | Abre el Rust generado (a pedido) |
+| R#: Copiar el Rust generado (srcOut) | `rsharp.copyGeneratedRust` | Copia el Rust generado al portapapeles |
 | R#: Show Toolchain Status | `rsharp.showToolchainStatus` | Muestra `dotnet`, `cargo` y `rsharp` |
 | R#: Restart Roslyn / C# Language Server | `rsharp.restartLanguageServer` | Reinicia el servidor de C# |
 | R#: Toggle C# Language Association for .rsh | `rsharp.toggleCSharpAssociation` | Alterna `*.rsh` ↔ `csharp` |
-| R#: Debug (CodeLLDB) | `rsharp.debug` | Inicia la depuración nativa |
+| R#: Debug (C#) | `rsharp.debug` | Compila con Roslyn y depura el `.rsh` con el depurador de .NET |
+| R#: Debug (Rust, CodeLLDB) | `rsharp.debugRust` | Depura el binario Rust con CodeLLDB |
+| R#: Run (C#) | `rsharp.runCsharp` | Compila con Roslyn y ejecuta el ensamblado |
+| R#: Build (C#) | `rsharp.buildCsharp` | Solo compila con Roslyn y publica sus errores en el `.rsh` |
 | R#: Mostrar / ocultar el detalle de Rust | `rsharp.toggleRustDetail` | Alterna el detalle de Rust |
 
 ---
@@ -377,6 +438,10 @@ depurador, usa `R#: Open Generated Rust File` para tener el Rust a mano.
 
 ### Depuración
 
+- **Depuración del `.rsh` con el depurador de .NET** (Roslyn + vsdbg): los puntos
+  de parada caen en la línea exacta, sin source maps, porque el PDB referencia
+  los `.rsh` originales.
+- Errores de Roslyn publicados en el `.rsh` (C#1002, C#0168, ...).
 - Plantilla de `launch.json` para CodeLLDB.
 - Traducción de los puntos de parada de `.rsh` a Rust con los source maps.
 - Detección e instalación asistida de CodeLLDB.
@@ -394,8 +459,8 @@ depurador, usa `R#: Open Generated Rust File` para tener el Rust a mano.
 | Lo que no funciona | Por qué | Referencia |
 |---|---|---|
 | **Transpilar sin la CLI `rsharp`** | La extensión es un cliente delgado; el transpilador corre en .NET | spec §4.1, §4.4 |
-| **Depurar sin ver Rust** | LLDB no consume source maps de línea como Node con TypeScript; la depuración completa está diferida | spec §14.5 |
-| **Puntos de parada exactos en `.rsh`** | Se traducen a la línea de Rust más cercana anterior, no a la exacta | — |
+| **Depurar el Rust sin ver el Rust** | En el modo CodeLLDB el depurador abre el fichero Rust; el modo cómodo (Roslyn) depura la semántica de C# | spec §14.5 |
+| **Puntos de parada exactos en `.rsh` con LLDB** | En el modo Rust se traducen a la línea de Rust más cercana; el modo C# sí es exacto | — |
 | **Ejecutar un `.wasm` desde la terminal** | Un módulo WASM no es un programa; necesita un host o un navegador | spec §11 |
 | **Cargar DLLs dinámicas en WASM** | `wasm32-unknown-unknown` no admite enlace dinámico | spec §11, `R#0150` |
 | **Usar `File.ReadAllText` en WASM** | No existe en ese destino; la extensión lo señala con `R#0101` | spec §10 |

@@ -130,12 +130,12 @@
       },
       {
         "command": "rsharp.openGeneratedRust",
-        "title": "Open Generated Rust File",
+        "title": "Ver el Rust generado (srcOut)",
         "category": "R#"
       },
       {
         "command": "rsharp.copyGeneratedRust",
-        "title": "Copy Generated Rust File",
+        "title": "Copiar el Rust generado (srcOut)",
         "category": "R#"
       },
       {
@@ -156,15 +156,33 @@
       },
       {
         "command": "rsharp.debug",
-        "title": "Debug (CodeLLDB)",
+        "title": "Debug (C#)",
         "category": "R#",
-        "icon": "$(debug-alt)"
+        "icon": " $(debug-alt)"
       },
       {
         "command": "rsharp.toggleRustDetail",
         "title": "Mostrar / ocultar el detalle de Rust en los errores",
         "category": "R#",
         "icon": "$(eye)"
+      },
+      {
+        "command": "rsharp.debugRust",
+        "title": "Debug (Rust, CodeLLDB)",
+        "category": "R#",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "rsharp.runCsharp",
+        "title": "Run (C#)",
+        "category": "R#",
+        "icon": "$(play)"
+      },
+      {
+        "command": "rsharp.buildCsharp",
+        "title": "Build (C#)",
+        "category": "R#",
+        "icon": "$(tools)"
       }
     ],
     "menus": {
@@ -239,6 +257,18 @@
         },
         {
           "command": "rsharp.toggleRustDetail",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.debugRust",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.runCsharp",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.buildCsharp",
           "when": "true"
         }
       ],

@@ -26,6 +26,7 @@ import type { RSharpCli } from './cli';
 import type { ResolvedConfig } from './config';
 import { diagnosticText } from './diagnostics';
 import { describeMissingTools, type ToolPaths } from './toolchain';
+import { classifyArtifact, describeArtifact, isRunnable } from './artifact';
 import { runInTerminal as runProgramInTerminal } from './terminal';
 import {
   RSPHARP_TARGETS,
@@ -586,6 +587,17 @@ async function commandRun(deps: CommandDependencies): Promise<void> {
     const message = `No se encontró el binario en "${config.distDir}".`;
     deps.info(message);
     deps.logError(message);
+    return;
+  }
+
+  // El resultado de R# es Rust: puede ser un ejecutable, un módulo WASM o una
+  // biblioteca. Solo se ejecuta lo que se puede ejecutar.
+  const kind = classifyArtifact(binary, 'native');
+  if (!isRunnable(kind)) {
+    const message = `${binary}: ${describeArtifact(kind)}`;
+    deps.info(message);
+    deps.log(message);
+    deps.refresh();
     return;
   }
 

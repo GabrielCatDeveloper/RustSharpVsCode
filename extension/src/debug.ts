@@ -32,8 +32,17 @@ export interface DebugDependencies {
   getConfig(): ResolvedConfig;
 }
 
-/** Tipo de depurador que usa la extensión (CodeLLDB). */
+/** Tipo de depurador que usa la extensión para el Rust generado (CodeLLDB). */
 export const DEBUGGER_TYPE = 'lldb';
+
+/**
+ * Tipo de depurador de .NET (vsdbg / C# Dev Kit).
+ *
+ * Es el depurador principal de R#: como el `.rsh` es C# válido y Roslyn lo
+ * compila directamente, el PDB referencia los `.rsh` y los puntos de parada
+ * caen en el fichero que el usuario escribió, sin source maps.
+ */
+export const DOTNET_DEBUGGER_TYPE = 'coreclr';
 
 /**
  * Proveedor de configuración de depuración.
@@ -185,4 +194,62 @@ export async function isDebuggerInstalled(): Promise<boolean> {
   }
   const commands = await vscode.commands.getCommands(true);
   return commands.some((command) => command.startsWith('lldb.'));
+}
+
+/**
+ * Proveedor de configuración para el depurador de .NET.
+ *
+ * A diferencia de CodeLLDB, aquí no hace falta traducir nada: el PDB
+ * referencia los `.rsh` porque Roslyn los compiló directamente. Solo hay que
+ * rellenar el programa (el ensamblado) y el directorio de trabajo.
+ */
+export class RSharpDotnetDebugConfigurationProvider
+  implements vscode.DebugConfigurationProvider
+{
+  constructor(private readonly deps: DotnetDebugDependencies) {}
+
+  /** Plantilla de configuración que se ofrece en "launch.json". */
+  provideDebugConfigurations(): vscode.DebugConfiguration[] {
+    const config = this.deps.getConfig();
+    return [
+      {
+        type: DOTNET_DEBUGGER_TYPE,
+        request: 'launch',
+        name: 'R#: depurar (C#)',
+        program: this.deps.getAssembly() ?? '',
+        cwd: config.projectRoot,
+        args: [],
+        stopAtEntry: false,
+        // El código de R# es código de usuario: no se filtra como biblioteca.
+        justMyCode: true,
+      },
+    ];
+  }
+
+  /** Rellena el programa y el directorio de trabajo antes de iniciar. */
+  resolveDebugConfiguration(
+    _folder: vscode.WorkspaceFolder | undefined,
+    config: vscode.DebugConfiguration,
+  ): vscode.DebugConfiguration {
+    const resolved: vscode.DebugConfiguration = { ...config };
+    const assembly = this.deps.getAssembly();
+    if (!resolved.program && assembly) {
+      resolved.program = assembly;
+    }
+    if (!resolved.cwd) {
+      resolved.cwd = this.deps.getConfig().projectRoot;
+    }
+    if (resolved.justMyCode === undefined) {
+      resolved.justMyCode = true;
+    }
+    return resolved;
+  }
+}
+
+/** Dependencias del proveedor de depuración de .NET. */
+export interface DotnetDebugDependencies {
+  /** Configuración resuelta del proyecto. */
+  getConfig(): ResolvedConfig;
+  /** Ruta del ensamblado generado con Roslyn. */
+  getAssembly(): string | undefined;
 }

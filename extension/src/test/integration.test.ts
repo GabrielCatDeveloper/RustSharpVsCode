@@ -18,6 +18,7 @@ import * as path from 'node:path';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import { buildDotnetProject, detectFramework, findDotnet, generateDotnetProject } from '../csharp';
 import { formatCleanDiagnostic, mapRustDiagnostic } from '../errors';
 import { parseCargoOutput } from '../rustc-parser';
 import { resolveRustLocation } from '../sourcemap';
@@ -165,4 +166,50 @@ test('el proyecto de ejemplo se transpila, compila y ejecuta', () => {
   assert.match(execution.stdout, /=== R# demo ===/);
   assert.match(execution.stdout, /capturado: no es un número: abc/);
   assert.match(execution.stdout, /fin/);
+});
+
+// ---------------------------------------------------------------------------
+// Compilación con Roslyn (el lado C#)
+// ---------------------------------------------------------------------------
+
+test('Roslyn compila los .rsh y el PDB los referencia', async () => {
+  const dotnet = findDotnet();
+  if (dotnet === undefined) {
+    // Sin SDK de .NET la prueba se omite: no es un fallo del código.
+    return;
+  }
+
+  const sources = fs
+    .readdirSync(path.join(DEMO_PROJECT, 'src'))
+    .filter((file) => file.endsWith('.rsh'))
+    .map((file) => path.join(DEMO_PROJECT, 'src', file));
+
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rsharp-cs-'));
+  try {
+    const projectPath = generateDotnetProject({
+      outputDir,
+      sources,
+      assemblyName: 'rsharp_demo',
+      framework: detectFramework(dotnet.path),
+    });
+
+    const result = await buildDotnetProject({
+      dotnetPath: dotnet.path,
+      projectPath,
+      outputDir,
+      projectRoot: DEMO_PROJECT,
+    });
+
+    assert.equal(result.ok, true, result.stderr.slice(0, 600));
+    assert.ok(result.assembly, 'debe generarse el ensamblado');
+    assert.equal(result.diagnostics.length, 0);
+
+    // Lo importante: el PDB apunta a los `.rsh`, no a copias `.cs`.
+    const pdb = path.join(outputDir, 'rsharp_demo.pdb');
+    assert.ok(fs.existsSync(pdb), 'debe generarse el PDB');
+    const content = fs.readFileSync(pdb).toString('latin1');
+    assert.ok(content.includes('.rsh'), 'el PDB debe referenciar los archivos .rsh');
+  } finally {
+    fs.rmSync(outputDir, { recursive: true, force: true });
+  }
 });

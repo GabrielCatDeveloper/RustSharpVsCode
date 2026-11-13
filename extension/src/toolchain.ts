@@ -122,6 +122,31 @@ function homeDirectory(env: NodeJS.ProcessEnv): string {
 }
 
 /**
+ * Rutas extra donde puede estar el SDK de .NET.
+ *
+ * En Linux y macOS la instalación oficial vive en `~/.dotnet`; en Windows,
+ * en `%ProgramFiles%\dotnet`. El entorno `DOTNET_ROOT` también vale.
+ */
+function dotnetExtraCandidates(env: NodeJS.ProcessEnv): string[] {
+  const candidates: string[] = [];
+
+  const root = env.DOTNET_ROOT;
+  if (root) {
+    candidates.push(path.join(root, 'dotnet'), path.join(root, 'dotnet.exe'));
+  }
+
+  const home = homeDirectory(env);
+  candidates.push(path.join(home, '.dotnet', 'dotnet'));
+  candidates.push(path.join(home, '.dotnet', 'dotnet.exe'));
+
+  if (env.ProgramFiles) {
+    candidates.push(path.join(env.ProgramFiles, 'dotnet', 'dotnet.exe'));
+  }
+
+  return candidates;
+}
+
+/**
  * Rutas extra donde puede estar la CLI `rsharp` cuando no está en el PATH:
  * - `~/.dotnet/tools/rsharp` (instalación con `dotnet tool install`),
  * - `./.rsharp/bin/rsharp` (instalación local del proyecto),
@@ -182,7 +207,8 @@ export function resolveToolchain(input: ToolPathsInput): ToolPaths {
   if (dotnetPath) {
     tool.dotnet = dotnetPath;
   } else if (input.autoDetect) {
-    const found = findInPath(env, DOTNET_NAMES, exists);
+    const found =
+      findInPath(env, DOTNET_NAMES, exists) ?? findFirst(dotnetExtraCandidates(env), exists);
     if (found) {
       tool.dotnet = found;
     }

@@ -690,6 +690,23 @@ del agente principal (ver `ai/REVIEW.md`).
   - Los errores de rustc se traducen a la línea del `.rsh`.
 - **Notas de la revisión:** 20/20 pruebas del arnés y 188/188 de la extensión. La prueba diferencial encontró dos fallos reales: faltaba `using System.Linq;` (el código no era C# válido) y la cultura numérica (.NET usa `1,50`, Rust `1.50`); ambos corregidos en el ejemplo.
 
+
+### T-VSCD-017 · Depuración con Roslyn y clasificación de artefactos
+- **Estado:** DONE
+- **Ejecutor:** agente principal (implementación) + revisión del agente principal
+- **Fase:** Fase 2
+- **Depende de:** T-VSCD-014, T-VSCD-016
+- **Objetivo:** Depurar R# con el compilador de C# y con el depurador de .NET sobre los propios `.rsh`, y no asumir que el artefacto de Rust es siempre un ejecutable.
+- **Archivos:** `extension/src/csharp.ts`, `extension/src/artifact.ts`, `extension/src/debug.ts`, `extension/src/extension.ts`, `extension/src/toolchain.ts`, `extension/src/test/csharp.test.ts`, `extension/src/test/integration.test.ts`
+- **Criterios de aceptación:**
+  - `R#: Debug` compila los `.rsh` con Roslyn y arranca el depurador de .NET sobre ellos.
+  - El PDB referencia los `.rsh` originales: los puntos de parada caen en la línea exacta.
+  - Los errores de Roslyn se publican en el `.rsh`, sin source maps.
+  - `R#: Run (C#)` y `R#: Build (C#)` completan el ciclo con el lado de C#.
+  - El Rust generado sigue oculto salvo que el usuario lo pida (`srcOut`).
+  - El artefacto se clasifica (nativo, WASM, biblioteca) y la interfaz explica qué se puede hacer con él.
+- **Notas de la revisión:** 196/196 pruebas de la extensión, incluida una que compila el ejemplo con Roslyn y comprueba que el PDB contiene los `.rsh`. Verificado además con una instancia real de VSCode (activación correcta y detección de `~/.dotnet/dotnet`).
+
 ### T-VSCD-015 · Documentación de la extensión
 - **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal

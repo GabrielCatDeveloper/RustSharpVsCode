@@ -292,6 +292,61 @@ y se documente como tal).
 
 ---
 
+### Revisión REV-004 · Depuración con Roslyn (el compilador de C#) y artefactos
+
+- **Fecha:** 2026-11-13
+- **Tarea:** `T-VSCD-017` · Depuración con Roslyn y clasificación de artefactos
+- **Revisor:** agente principal de la sesión
+- **Modelo ejecutor:** agente principal (el diseño depende de un experimento con Roslyn)
+- **Fase:** Fase 2
+- **Veredicto:** APROBADO
+
+#### Idea
+
+Un `.rsh` es C# válido (spec §3) y **Roslyn no distingue por la extensión**.
+Experimento previo: un `.csproj` con `<Compile Include="Program.rsh" />`
+compila sin problemas y **el PDB referencia `Program.rsh`**. Eso significa que
+el depurador de .NET abre el fichero que el usuario escribió y que los puntos
+de parada caen en la línea exacta, sin source maps.
+
+Con esto se resuelve el hueco que REV-002 dejó abierto: los puntos de parada
+interactivos no se traducían porque LLDB no tiene source maps de línea.
+
+#### Defectos encontrados
+
+| # | Archivo y línea | Severidad | Descripción |
+|---|---|---|---|
+| 1 | `extension/src/toolchain.ts` | Mayor | El SDK de .NET solo se buscaba en el `PATH`: en la máquina del autor está en `~/.dotnet` y no se detectaba. Ahora se buscan `DOTNET_ROOT`, `~/.dotnet` y `%ProgramFiles%\dotnet`. |
+| 2 | `extension/src/csharp.ts` | Menor | El mensaje de MSBuild incluía el proyecto entre corchetes (`; expected [demo.csproj]`). Se recorta. |
+| 3 | `extension/src/commands.ts` | Mayor | `R#: Run` asumía que el artefacto era un ejecutable. Ahora se clasifica (nativo, WASM, biblioteca) y se explica el motivo cuando no se puede ejecutar. |
+
+#### Correcciones aplicadas
+
+- `extension/src/csharp.ts` — nuevo: localiza el SDK, detecta el `TargetFramework`, genera el `.csproj` que compila los `.rsh`, compila con `dotnet build` y extrae los diagnósticos de Roslyn.
+- `extension/src/artifact.ts` — nuevo: clasifica el artefacto y explica qué se puede hacer con él.
+- `extension/src/debug.ts` — nuevo proveedor para el depurador de .NET (`coreclr`).
+- `extension/src/extension.ts` — `R#: Debug` (C#), `R#: Debug (Rust, CodeLLDB)`, `R#: Run (C#)` y `R#: Build (C#)`.
+- `extension/src/toolchain.ts` — detección de .NET ampliada.
+
+#### Observaciones pendientes
+
+- **O1 · El modo C# depura la semántica de C#, no el Rust.** Es una decisión consciente: es la referencia (spec §4.1) y da la experiencia cómoda. Para depurar el Rust está el modo CodeLLDB.
+- **O2 · El modo C# necesita el SDK de .NET.** Si no está, la extensión lo dice y ofrece el modo Rust.
+- **O3 · El compilador de Rust sigue siendo el producto.** El modo C# no genera el ejecutable de Rust: solo compila el lado de C# para depurar y para iterar rápido.
+
+#### Verificación ejecutada
+
+- Experimento previo: `.csproj` con `<Compile Include="*.rsh">` → compila y el PDB contiene los `.rsh`.
+- `npm test` → **196/196 pruebas**, incluida una que compila el ejemplo con Roslyn y comprueba que el PDB referencia los `.rsh`.
+- Instancia real de VSCode → la extensión activa con el proyecto de ejemplo y detecta `~/.dotnet/dotnet`.
+- `npm run demo` → 20/20 (sin cambios: el flujo Rust sigue igual).
+
+**Firma:** agente principal de la sesión · 2026-11-13 · APROBADO
+
+---
+
+---
+
 ## Plantilla para nuevas revisiones
 
 Copiar el bloque de la sección "Plantilla de revisión" y añadirlo al final de

@@ -19,7 +19,20 @@ import * as vscode from 'vscode';
 import { RSharpCli } from './cli';
 import { registerCommands } from './commands';
 import { loadProjectConfig, type ResolvedConfig } from './config';
-import { DEBUGGER_TYPE, RSharpDebugConfigurationProvider, isDebuggerInstalled } from './debug';
+import {
+  buildDotnetProject,
+  detectFramework,
+  findDotnet,
+  generateDotnetProject,
+  type DotnetTool,
+} from './csharp';
+import {
+  DEBUGGER_TYPE,
+  DOTNET_DEBUGGER_TYPE,
+  RSharpDebugConfigurationProvider,
+  RSharpDotnetDebugConfigurationProvider,
+  isDebuggerInstalled,
+} from './debug';
 import { formatCleanDiagnostic, mapRustDiagnostic, summarizeCleanDiagnostics } from './errors';
 import { findRustPanics, mapPanic } from './panic';
 import {
@@ -32,6 +45,7 @@ import { parseCargoOutput } from './rustc-parser';
 import { RSharpSession, SESSION_FILE_NAME } from './session';
 import { createStatusBar } from './statusbar';
 import { resolveRustLocation } from './sourcemap';
+import { runInTerminal as runProgramInTerminal } from './terminal';
 import { createProjectTree } from './treeview';
 import { resolveToolchain, type ToolPaths } from './toolchain';
 import {
@@ -61,6 +75,10 @@ interface ExtensionState {
   session: RSharpSession;
   /** Colección de diagnósticos del editor. */
   collection: vscode.DiagnosticCollection;
+  /** SDK de .NET, para compilar y depurar el lado C#. */
+  dotnet: DotnetTool | undefined;
+  /** Ensamblado generado por Roslyn (si se ha compilado). */
+  dotnetAssembly: string | undefined;
   /** Acumulado de `stderr` del programa en ejecución. */
   programStderr: string;
   /** `true` si el usuario ha pedido ver el detalle de Rust. */
@@ -83,6 +101,8 @@ export function activate(context: vscode.ExtensionContext): void {
     toolchain: { rsharpIsDll: false },
     session: new RSharpSession(),
     collection: diagnostics,
+    dotnet: undefined,
+    dotnetAssembly: undefined,
     programStderr: '',
     showRustDetail: false,
   };
@@ -178,7 +198,10 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('rsharp.showToolchainStatus', () =>
       showToolchainStatus(state),
     ),
-    vscode.commands.registerCommand('rsharp.debug', () => startDebugSession(state, output)),
+    vscode.commands.registerCommand('rsharp.debug', () => startCsharpDebug(state, output)),
+    vscode.commands.registerCommand('rsharp.debugRust', () => startDebugSession(state, output)),
+    vscode.commands.registerCommand('rsharp.runCsharp', () => runCsharpProgram(state, output)),
+    vscode.commands.registerCommand('rsharp.buildCsharp', () => buildCsharpProject(state, output)),
     vscode.commands.registerCommand('rsharp.toggleRustDetail', () => {
       state.showRustDetail = !state.showRustDetail;
       void vscode.window.showInformationMessage(
@@ -196,6 +219,13 @@ export function activate(context: vscode.ExtensionContext): void {
       new RSharpDebugConfigurationProvider({
         getSession: () => state.session.get(),
         getConfig: () => state.config ?? emptyConfig(),
+      }),
+    ),
+    vscode.debug.registerDebugConfigurationProvider(
+      DOTNET_DEBUGGER_TYPE,
+      new RSharpDotnetDebugConfigurationProvider({
+        getConfig: () => state.config ?? emptyConfig(),
+        getAssembly: () => state.dotnetAssembly,
       }),
     ),
   );
@@ -690,10 +720,245 @@ async function showToolchainStatus(state: ExtensionState): Promise<void> {
 }
 
 /**
- * Arranca una sesión de depuración con CodeLLDB.
+ * Compila el proyecto R# con Roslyn (el compilador de C#).
+ *
+ * Los `.rsh` se compilan **tal cual**: Roslyn no distingue por la extensión
+ * y el PDB guarda la ruta original, así que el depurador abre el `.rsh` que
+ * escribió el usuario. Los errores de compilación también salen con la ruta
+ * del `.rsh`, sin necesidad de source maps.
+ *
+ * @returns la ruta del ensamblado generado, o `undefined` si falló.
+ */
+async function buildWithDotnet(
+  state: ExtensionState,
+  output: vscode.OutputChannel,
+): Promise<string | undefined> {
+  const config = state.config;
+  if (!config) {
+    return undefined;
+  }
+
+  if (!state.dotnet) {
+    state.dotnet = findDotnet();
+  }
+  if (!state.dotnet) {
+    output.appendLine(
+      'R#: no se encontró el SDK de .NET. Instálalo (https://dotnet.microsoft.com/download) ' +
+        'para compilar y depurar el lado C#.',
+    );
+    return undefined;
+  }
+
+  const sources = findRshSources(config.projectRoot);
+  if (sources.length === 0) {
+    output.appendLine('R#: no hay archivos `.rsh` que compilar.');
+    return undefined;
+  }
+
+  const outputDir = path.join(config.projectRoot, 'target', 'rsharp-cs');
+  const assemblyName = config.toml?.project.name ?? 'rsharp_app';
+  const framework = detectFramework(state.dotnet.path);
+
+  output.appendLine(
+    `R#: compilando con Roslyn (${framework}): ${sources.length} archivo(s) .rsh`,
+  );
+
+  const projectPath = generateDotnetProject({
+    outputDir,
+    sources,
+    assemblyName,
+    framework,
+  });
+
+  const result = await buildDotnetProject({
+    dotnetPath: state.dotnet.path,
+    projectPath,
+    outputDir,
+    projectRoot: config.projectRoot,
+    logger: (message) => output.append(message),
+  });
+
+  // Los diagnósticos de Roslyn apuntan directamente al `.rsh`.
+  if (result.diagnostics.length > 0) {
+    publishRSharpDiagnostics(state.collection, result.diagnostics, config.projectRoot);
+  } else if (result.ok) {
+    state.collection.clear();
+  }
+
+  if (!result.ok) {
+    output.appendLine(
+      `R#: la compilación con Roslyn falló (código ${result.exitCode}) con ` +
+        `${result.diagnostics.length} diagnóstico(s).`,
+    );
+    return undefined;
+  }
+
+  state.dotnetAssembly = result.assembly;
+  output.appendLine(`R#: ensamblado: ${result.assembly}`);
+  return result.assembly;
+}
+
+/**
+ * `R#: Debug`: depura el proyecto con el depurador de .NET.
+ *
+ * Como el `.rsh` se compila con Roslyn y el PDB lo referencia, los puntos de
+ * parada caen en el fichero que el usuario escribió. No hay source maps de por
+ * medio: es la vía directa, como TypeScript con su debugger.
+ */
+async function startCsharpDebug(
+  state: ExtensionState,
+  output: vscode.OutputChannel,
+): Promise<void> {
+  const config = state.config;
+  if (!config) {
+    void vscode.window.showInformationMessage(
+      'R#: no hay un proyecto R# activo (falta rsharp.toml).',
+    );
+    return;
+  }
+
+  const commands = await vscode.commands.getCommands(true);
+  const hasDotnetDebugger = commands.some(
+    (command) =>
+      command.startsWith('coreclr.') ||
+      command.startsWith('csharp.') ||
+      command.startsWith('dotnet.'),
+  );
+  if (!hasDotnetDebugger) {
+    const choice = await vscode.window.showWarningMessage(
+      'R#: la depuración de R# usa el depurador de .NET (C# Dev Kit). ¿Instalarlo?',
+      'Instalar',
+      'Depurar el Rust',
+      'Cancelar',
+    );
+    if (choice === 'Instalar') {
+      await vscode.commands.executeCommand(
+        'workbench.extensions.installExtension',
+        'ms-dotnettools.csharp',
+      );
+      return;
+    }
+    if (choice === 'Depurar el Rust') {
+      await startDebugSession(state, output);
+      return;
+    }
+    return;
+  }
+
+  const assembly = await buildWithDotnet(state, output);
+  if (!assembly) {
+    void vscode.window.showErrorMessage(
+      'R#: no se pudo compilar el proyecto con Roslyn. Revisa el panel de salida.',
+    );
+    return;
+  }
+
+  output.appendLine(`R#: iniciando la depuración de ${assembly}`);
+  await vscode.debug.startDebugging(
+    vscode.workspace.getWorkspaceFolder(vscode.Uri.file(config.projectRoot)),
+    {
+      type: DOTNET_DEBUGGER_TYPE,
+      request: 'launch',
+      name: 'R#: depurar (C#)',
+      program: assembly,
+      cwd: config.projectRoot,
+      args: [],
+      stopAtEntry: false,
+      justMyCode: true,
+    },
+    { noDebug: false },
+  );
+}
+
+/** `R#: Run (C#)`: compila con Roslyn y ejecuta el ensamblado en la terminal. */
+async function runCsharpProgram(
+  state: ExtensionState,
+  output: vscode.OutputChannel,
+): Promise<void> {
+  const config = state.config;
+  if (!config) {
+    void vscode.window.showInformationMessage(
+      'R#: no hay un proyecto R# activo (falta rsharp.toml).',
+    );
+    return;
+  }
+
+  const assembly = await buildWithDotnet(state, output);
+  if (!assembly) {
+    void vscode.window.showErrorMessage(
+      'R#: no se pudo compilar el proyecto con Roslyn. Revisa el panel de salida.',
+    );
+    return;
+  }
+
+  const dotnet = state.dotnet;
+  if (!dotnet) {
+    return;
+  }
+
+  output.appendLine(`R#: ejecutando ${assembly}`);
+  runProgramInTerminal({
+    command: dotnet.path,
+    args: [assembly],
+    cwd: config.projectRoot,
+  });
+}
+
+/** `R#: Build (C#)`: solo compila con Roslyn, sin ejecutar. */
+async function buildCsharpProject(
+  state: ExtensionState,
+  output: vscode.OutputChannel,
+): Promise<void> {
+  const assembly = await buildWithDotnet(state, output);
+  if (assembly) {
+    void vscode.window.showInformationMessage(
+      `R#: compilado con Roslyn (${path.basename(assembly)}).`,
+    );
+  }
+}
+
+/**
+ * Busca los `.rsh` del proyecto, para compilarlos con Roslyn.
+ */
+function findRshSources(projectRoot: string): string[] {
+  const found: string[] = [];
+  const skip = new Set(['target', 'dist', 'node_modules', '.git', 'bin', 'obj']);
+
+  const walk = (directory: string, depth: number): void => {
+    if (depth > 6) {
+      return;
+    }
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(directory, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name.startsWith('.') || skip.has(entry.name)) {
+          continue;
+        }
+        walk(full, depth + 1);
+      } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.rsh')) {
+        found.push(full);
+      }
+    }
+  };
+
+  walk(projectRoot, 0);
+  return found.sort();
+}
+
+/**
+ * Arranca una sesión de depuración con CodeLLDB (modo avanzado).
  *
  * Si el depurador no está instalado, se ofrece instalarlo. Los puntos de
  * parada en archivos `.rsh` se traducen a Rust con los source maps.
+ *
+ * La vía cómoda es `R#: Debug`, que compila el proyecto con Roslyn y lo
+ * depura con el depurador de .NET sobre los propios `.rsh`.
  */
 async function startDebugSession(
   state: ExtensionState,
