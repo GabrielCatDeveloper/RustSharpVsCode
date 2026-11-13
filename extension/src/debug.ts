@@ -22,7 +22,7 @@ import * as vscode from 'vscode';
 
 import type { ResolvedConfig } from './config';
 import type { SessionState } from './session';
-import { resolveRshLocation } from './sourcemap';
+import { buildSourcePathRemap, resolveRshLocation } from './sourcemap';
 
 /** Dependencias del proveedor de configuración de depuración. */
 export interface DebugDependencies {
@@ -48,6 +48,7 @@ export class RSharpDebugConfigurationProvider implements vscode.DebugConfigurati
   /** Plantilla de configuración que se ofrece en "launch.json". */
   provideDebugConfigurations(): vscode.DebugConfiguration[] {
     const config = this.deps.getConfig();
+    const session = this.deps.getSession();
     const name = config.toml?.project.name ?? 'rsharp';
     return [
       {
@@ -60,8 +61,24 @@ export class RSharpDebugConfigurationProvider implements vscode.DebugConfigurati
         sourceLanguages: ['rust'],
         stopAtEntry: false,
         preLaunchTask: 'R#: Build',
+        // Remapea `main.rsh` -> `main.rs` para que LLDB encuentre el fichero.
+        sourceMap: this.buildRemap(session, config),
       },
     ];
+  }
+
+  /**
+   * Construye el remapeo de rutas `.rsh` -> `.rs` a partir de los source maps
+   * de la última transpilación.
+   */
+  private buildRemap(
+    session: SessionState | undefined,
+    config: ResolvedConfig,
+  ): Record<string, string> | undefined {
+    if (!session || session.sourceMaps.length === 0) {
+      return undefined;
+    }
+    return buildSourcePathRemap(session.sourceMaps, config.projectRoot, config.outputDir);
   }
 
   /**

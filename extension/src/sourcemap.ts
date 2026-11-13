@@ -10,6 +10,8 @@
  * probar en Node puro.
  */
 
+import * as path from 'node:path';
+
 import type { RSharpSourceMap, RSharpSourceMapEntry } from './types';
 
 /**
@@ -153,6 +155,43 @@ function findMapByRsh(rshFile: string, maps: RSharpSourceMap[]): RSharpSourceMap
   }
 
   return undefined;
+}
+
+/**
+ * Construye el remapeo de rutas que entiende LLDB (`target.source-map remap`).
+ *
+ * Devuelve un diccionario `{ rutaDelRsh: rutaDelRust }` con rutas absolutas.
+ *
+ * Con este remapeo, un punto de parada puesto sobre `main.rsh` llega a LLDB
+ * como un punto de parada sobre `main.rs`: el depurador deja de quejarse de
+ * que el fichero no existe.
+ *
+ * Ojo con el alcance: el remapeo es **de fichero, no de línea**. El punto de
+ * parada conservará el número de línea del `.rsh`. Por eso el punto de parada
+ * cae en la línea correcta cuando el compilador emite un Rust alineado línea a
+ * línea con el `.rsh` (lo recomienda el contrato de la CLI); si no está
+ * alineado, hay que usar el array `breakpoints` de `launch.json`, que sí se
+ * traduce línea a línea.
+ */
+export function buildSourcePathRemap(
+  maps: RSharpSourceMap[],
+  root: string,
+  outputDir: string,
+): Record<string, string> {
+  const remap: Record<string, string> = {};
+  for (const map of maps) {
+    if (!map.rshFile || !map.rustFile) {
+      continue;
+    }
+    const rshPath = path.isAbsolute(map.rshFile)
+      ? map.rshFile
+      : path.resolve(root, map.rshFile);
+    const rustPath = path.isAbsolute(map.rustFile)
+      ? map.rustFile
+      : path.resolve(outputDir, map.rustFile);
+    remap[rshPath] = rustPath;
+  }
+  return remap;
 }
 
 /**

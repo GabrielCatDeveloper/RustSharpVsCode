@@ -1,0 +1,27 @@
+=== R# demo ===
+-- formas --
+circle r=1.50 area=7.07
+square s=2.00 area=4.00
+rect 3.00x4.00 area=12.00
+-- areas --
+0: 7.07
+1: 4.00
+2: 12.00
+total=23.07
+-- linq --
+30 40 50 
+suma=14
+promedio=7.69
+-- pedidos --
+A-001 Pending 25.00 EUR normal
+A-002 Active 150.00 EUR GRANDE
+A-003 Done 99.50 EUR normal
+-- estados --
+A-001 -> Active
+A-002 -> Done
+A-003 -> Done
+-- errores --
+capturado: no es un número: abc
+punto=(0,0) esquina=(3,4)
+clamp=100.00
+fin

@@ -5,7 +5,7 @@
 import * as assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { buildLineMap, resolveRshLocation, resolveRustLocation } from '../sourcemap';
+import { buildLineMap, buildSourcePathRemap, resolveRshLocation, resolveRustLocation } from '../sourcemap';
 import type { RSharpSourceMap } from '../types';
 
 const MAP: RSharpSourceMap = {
@@ -238,4 +238,17 @@ test('resolveRshLocation: es la operación inversa de resolveRustLocation', () =
     assert.equal(rust.rustFile, 'gen/main.rs');
     assert.ok(rust.rustLine <= line);
   }
+});
+
+// ---------------------------------------------------------------------------
+// Remapeo de rutas para LLDB (`target.source-map remap`)
+// ---------------------------------------------------------------------------
+
+test('buildSourcePathRemap: une cada .rsh con su .rs enrutado', () => {
+  const remap = buildSourcePathRemap([MAP], '/proyecto', '/proyecto/target/rsharp');
+  assert.equal(remap['/proyecto/src/main.rsh'], '/proyecto/target/rsharp/gen/main.rs');
+});
+
+test('buildSourcePathRemap: sin source maps devuelve un mapa vacío', () => {
+  assert.deepEqual(buildSourcePathRemap([], '/proyecto', '/salida'), {});
 });

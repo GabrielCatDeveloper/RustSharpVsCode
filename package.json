@@ -16,7 +16,11 @@
     "watch": "npm run watch --workspace extension",
     "lint": "npm run lint --workspace extension",
     "test": "npm run test --workspace extension",
-    "package": "npm run package --workspace extension"
+    "package": "npm run package --workspace extension",
+    "demo": "node examples/rsharp-demo/tests/run-tests.mjs",
+    "demo:transpile": "node extension/tools/mock-rsharp.mjs transpile --project examples/rsharp-demo",
+    "demo:build": "node extension/tools/mock-rsharp.mjs build --project examples/rsharp-demo",
+    "demo:run": "node extension/tools/mock-rsharp.mjs run --project examples/rsharp-demo"
   },
   "engines": {
     "node": ">=20"

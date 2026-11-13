@@ -243,6 +243,55 @@ y se documente como tal).
 
 ---
 
+### Revisión REV-003 · Proyecto de ejemplo, mini-transpilador y prueba diferencial
+
+- **Fecha:** 2026-11-13
+- **Tarea:** `T-VSCD-016` · Proyecto de ejemplo con prueba diferencial
+- **Revisor:** agente principal de la sesión
+- **Modelo ejecutor:** agente principal (el mini-transpilador es demasiado específico para un ejecutor externo)
+- **Fase:** Fase 2
+- **Veredicto:** APROBADO
+
+#### Defectos encontrados
+
+| # | Archivo y línea | Severidad | Descripción |
+|---|---|---|---|
+| 1 | `extension/tools/transpile.mjs` (parser) | Bloqueante | Al reintentar una sentencia como expresión, solo se retrocedía un token: `Console.WriteLine(...)` se parseaba como `WriteLine(...)` y las llamadas a la BCL no se traducían. |
+| 2 | `extension/tools/transpile.mjs` (parser) | Bloqueante | `List<IShape>` se parseaba como la comparación `List < IShape`; faltaba distinguir una declaración de una asignación. |
+| 3 | `extension/tools/transpile.mjs` (emisor) | Bloqueante | Las llaves de los `impl` se escribían en la línea de la declaración, dejando los métodos fuera del bloque. |
+| 4 | `extension/tools/transpile.mjs` (emisor) | Mayor | `impl Trait for Clase` duplicaba los métodos y chocaba con los inherentes; ahora delega. |
+| 5 | `extension/tools/transpile.mjs` (emisor) | Mayor | `filter` de Rust recibe el elemento por referencia: los lambdas de `Where` necesitan desreferenciar (`*n > 2`). |
+| 6 | `extension/tools/transpile.mjs` (emisor) | Mayor | `string` es `String` (propiedad) en Rust: los literales pasados a un parámetro `string` necesitan `.to_string()`. |
+| 7 | `extension/tools/transpile.mjs` (emisor) | Menor | `total / values.Count` dividía `f64` por `usize`: hace falta el cast `as f64`. |
+| 8 | `extension/tools/mock-rsharp.mjs` | Mayor | Las declaraciones de módulo se añadían al principio de `main.rs` y desplazaban una línea el Rust generado: los source maps dejaban de coincidir. Ahora se sustituye la primera línea. |
+| 9 | `examples/rsharp-demo/src/Program.rsh` | Mayor | Faltaba `using System.Linq;`: el ejemplo no era C# válido. Lo detectó la prueba diferencial. |
+| 10 | `examples/rsharp-demo/src/Program.rsh` | Mayor | .NET formatea los números con la cultura local (`1,50`) y Rust siempre con la invariante (`1.50`). El ejemplo fija `CultureInfo.InvariantCulture`. |
+
+#### Correcciones aplicadas
+
+- `extension/tools/transpile.mjs` — reescrito: analizador sintáctico, inferencia de tipos, emisión alineada línea a línea, `Box<dyn Trait>`, `Result<T, String>`, LINQ, `use` cruzados entre ficheros.
+- `extension/tools/errors.mjs` — nuevo: `UnsupportedError` (con el código `R#0101`) y `CliError`.
+- `extension/tools/mock-rsharp.mjs` — `transpile` y `build` usan ahora el mini-transpilador real; `run` ejecuta el binario y devuelve su salida.
+- `examples/rsharp-demo/` — nuevo: proyecto de ejemplo, arnés de pruebas y salida esperada.
+
+#### Observaciones pendientes
+
+- **O1 · Alcance del mini-transpilador.** Cubre el subconjunto del ejemplo y falla con `R#0101` ante cualquier otra construcción. Cuando exista `RSharp.Cli`, este fichero se retira (el contrato ya está en `docs/CLI-CONTRACT.md`).
+- **O2 · WASM sin runtime.** El ejemplo compila a `wasm32-unknown-unknown`, pero no se puede ejecutar sin un host; la extensión ya lo explica.
+- **O3 · `.rsh` alineado.** El mini-transpilador emite una línea de Rust por línea de C#, lo que hace que el remapeo de rutas de LLDB funcione con los puntos de parada interactivos.
+
+#### Verificación ejecutada
+
+- `npm run demo` → **20/20 pruebas**: transpilación, compilación con cargo, ejecución, release, WASM, limpieza y **prueba diferencial con .NET** (misma salida byte a byte).
+- `npm test` → **188/188 pruebas** de la extensión, incluida la de integración con `cargo` real.
+- La prueba diferencial detectó los defectos 9 y 10 (cultura numérica y `using` ausente).
+
+**Firma:** agente principal de la sesión · 2026-11-13 · APROBADO
+
+---
+
+---
+
 ## Plantilla para nuevas revisiones
 
 Copiar el bloque de la sección "Plantilla de revisión" y añadirlo al final de

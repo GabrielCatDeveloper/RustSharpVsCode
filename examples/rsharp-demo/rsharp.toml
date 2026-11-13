@@ -1,0 +1,26 @@
+schema = 1
+
+[project]
+name = "rsharp_demo"
+
+[paths]
+output = "target/rsharp"
+dist = "dist"
+
+[build]
+target = "native"
+
+[sugar]
+strings = "utf8"
+overflow = "panic"
+reentrancy = "panic"
+finalizers = "deterministic"
+cycles = "weak-attribute"
+
+[sugar.ai]
+enabled = false
+provider = "ollama"
+endpoint = "http://localhost:11434"
+model = "qwen2.5-coder"
+lock = "rsharp.lock"
+max_tokens_per_block = 4000

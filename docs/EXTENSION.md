@@ -429,12 +429,16 @@ depurador, usa `R#: Open Generated Rust File` para tener el Rust a mano.
 
 ## 11. Probar la extensión sin el compilador R#
 
-El repositorio incluye una CLI de simulación que respeta el mismo contrato:
+El repositorio incluye una CLI de simulación que respeta el mismo contrato y
+un **mini-transpilador** (limitado al subconjunto del ejemplo) que genera Rust
+real a partir de los `.rsh`:
 
 ```bash
 cd extension
 node tools/mock-rsharp.mjs --version
-node tools/mock-rsharp.mjs transpile --project . --output /tmp/out --json
+node tools/mock-rsharp.mjs transpile --project ../examples/rsharp-demo --json
+node tools/mock-rsharp.mjs build --project ../examples/rsharp-demo
+node tools/mock-rsharp.mjs run --project ../examples/rsharp-demo
 ```
 
 Para usarla desde VSCode:
@@ -446,8 +450,18 @@ Para usarla desde VSCode:
 }
 ```
 
-El mock genera un `main.rs` con un error de rustc deliberado, de modo que se
-puede comprobar la traducción del error a la línea del `.rsh`.
+El proyecto de ejemplo (`examples/rsharp-demo`) tiene su propio arnés de
+pruebas, que además hace la **prueba diferencial** de la spec §4.1 (el mismo
+código ejecutado por .NET y por Rust debe dar la misma salida):
+
+```bash
+npm run demo
+```
+
+> El mini-transpilador es un sustituto del compilador `RSharp.Cli`, que aún no
+> existe. Cuando exista, la CLI real implementará el contrato de
+> [`CLI-CONTRACT.md`](CLI-CONTRACT.md) y este ejemplo pasó a ser la prueba
+> diferencial del proyecto.
 
 ---
 

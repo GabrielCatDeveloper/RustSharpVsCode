@@ -675,6 +675,21 @@ del agente principal (ver `ai/REVIEW.md`).
   - `rsharp.toggleCSharpAssociation` alterna `files.associations` con `WorkspaceEdit` y `ConfigurationTarget.Workspace`.
 - **Notas de la revisión:** Implementado por el agente principal. Verificado con una instancia real de VSCode (`--extensionDevelopmentPath`): la extensión se activa con `workspaceContains:**/rsharp.toml`, detecta el proyecto, lee `rsharp.toml`, encuentra `cargo` y la CLI, y escribe el panel `R#` sin avisos ni errores.
 
+
+### T-VSCD-016 · Proyecto de ejemplo con prueba diferencial
+- **Estado:** DONE
+- **Ejecutor:** agente principal (mini-transpilador) + revisión del agente principal
+- **Fase:** Fase 2
+- **Depende de:** T-VSCD-012, T-VSCD-013
+- **Objetivo:** Proyecto de ejemplo que ejercite el flujo completo (`.rsh` -> Rust -> binario -> tests) y valide el resultado contra .NET (spec §4.1).
+- **Archivos:** `examples/rsharp-demo/`, `extension/tools/transpile.mjs`, `extension/tools/errors.mjs`, `extension/tools/mock-rsharp.mjs`, `extension/src/test/integration.test.ts`
+- **Criterios de aceptación:**
+  - El ejemplo usa `enum`, `interface`, `class`, `struct`, propiedades, clase estática, `List<T>`, LINQ, `try/catch`, `throw` y bucles.
+  - `npm run demo` transpila, compila con cargo, ejecuta y compara la salida con la de .NET.
+  - El Rust generado está alineado línea a línea con el `.rsh` (source map 1:1).
+  - Los errores de rustc se traducen a la línea del `.rsh`.
+- **Notas de la revisión:** 20/20 pruebas del arnés y 188/188 de la extensión. La prueba diferencial encontró dos fallos reales: faltaba `using System.Linq;` (el código no era C# válido) y la cultura numérica (.NET usa `1,50`, Rust `1.50`); ambos corregidos en el ejemplo.
+
 ### T-VSCD-015 · Documentación de la extensión
 - **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal

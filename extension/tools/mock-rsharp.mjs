@@ -40,6 +40,9 @@ import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+import { UnsupportedError } from './errors.mjs';
+import { transpileProject } from './transpile.mjs';
+
 const CLI_NAME = 'rsharp';
 const CLI_VERSION = '0.1.0-mock';
 
@@ -372,66 +375,123 @@ function countErrors(diagnostics) {
 // ---------------------------------------------------------------------------
 
 /** `rsharp transpile --project <dir> [--output <dir>]` */
+/**
+ * Genera el proyecto Rust a partir de los `.rsh` del proyecto.
+ *
+ * Devuelve la lista de ficheros generados, los source maps y el punto de
+ * entrada. Si el proyecto no tiene ningún `.rsh`, se usa el ejemplo embebido.
+ */
+function generateRustProject(projectDir, outputDir) {
+  const rshFiles = findRshFiles(projectDir);
+  const sources = rshFiles.map((file) => ({
+    name: path.basename(file).replace(/\.rsh$/i, ''),
+    relativePath: toPosix(path.relative(projectDir, file)),
+    content: fs.readFileSync(file, 'utf8'),
+  }));
+
+  if (sources.length === 0) {
+    sources.push({
+      name: 'main',
+      relativePath: 'main.rsh',
+      content: EXAMPLE_RSH,
+    });
+  }
+
+  const translated = transpileProject(
+    sources.map((source) => ({ name: source.name, content: source.content })),
+  );
+
+  const files = [];
+  const sourceMaps = [];
+  let entry = null;
+
+  translated.forEach((result, index) => {
+    const source = sources[index];
+    const moduleName = toSnakeCase(result.name);
+    const isEntry = typeof result.entryClass === 'string';
+    const rustFile = isEntry ? 'main.rs' : `${moduleName}.rs`;
+
+    let rust = result.rust;
+    let lineOffset = 0;
+    if (isEntry) {
+      // El fichero de entrada declara los módulos del resto y el `main` real.
+      const others = translated.filter((other) => other !== result);
+      const declarations = others.map((other) => `mod ${toSnakeCase(other.name)};`).join(' ');
+      const reexports = others.map((other) => `pub use ${toSnakeCase(other.name)}::*;`).join(' ');
+      const head = [declarations, reexports].filter((part) => part.length > 0).join(' ');
+      if (head.length > 0) {
+        // Las declaraciones van en la primera línea, sustituyendo la línea 1
+        // del fichero: así el Rust sigue alineado con el `.rsh`.
+        const lines = rust.split('\n');
+        lines[0] = `${head} ${lines[0] ?? ''}`;
+        rust = lines.join('\n');
+      }
+      rust = `${rust}\nfn main() { ${result.entryClass}::main(Vec::new()); }\n`;
+      entry = { class: result.entryClass, file: rustFile };
+    }
+    void lineOffset;
+
+    fs.mkdirSync(outputDir, { recursive: true });
+    fs.writeFileSync(path.join(outputDir, rustFile), rust, 'utf8');
+
+    files.push({
+      path: rustFile,
+      language: 'rust',
+      lines: rust.split('\n').length - 1,
+    });
+    sourceMaps.push({
+      rustFile,
+      rshFile: source.relativePath,
+      entries: result.sourceMap,
+    });
+  });
+
+  return { files, sourceMaps, entry, sources };
+}
+
+/** Convierte un nombre a snake_case (para los módulos de Rust). */
+function toSnakeCase(name) {
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
+    .toLowerCase();
+}
+
+/** `rsharp transpile --project <dir> [--output <dir>] [--json]` */
 function commandTranspile(options, started) {
   const projectDir = resolveProject(options.project);
   const outputDir = options.output
     ? resolvePath(options.output, projectDir)
     : path.join(projectDir, DEFAULT_OUTPUT_RELATIVE);
 
-  const source = pickRshSource(projectDir);
-  const rustLines = transpileLines(source.lines);
-
-  fs.mkdirSync(outputDir, { recursive: true });
-  fs.writeFileSync(path.join(outputDir, 'main.rs'), `${rustLines.join('\n')}\n`, 'utf8');
-
-  const files = [
-    {
-      path: 'main.rs',
-      language: 'rust',
-      lines: rustLines.length,
-    },
-  ];
-
-  const sourceMaps = [
-    linearSourceMap('main.rs', source.relPath, rustLines.length, source.lines.length),
-  ];
-
-  const diagnostics = [];
-  const sugar = findSugarOccurrence(source.lines);
-  if (sugar) {
-    diagnostics.push({
-      code: 'R#0042',
-      severity: 'error',
-      message: 'El código requiere un «sugar» que está apagado en el perfil activo.',
-      file: source.relPath,
-      line: sugar.line,
-      column: sugar.column,
-      length: sugar.length,
-      help:
-        'Activa el sugar en `rsharp.toml` ([sugar]) o compila con `rsharp build --profile release`.',
-      source: 'R#',
-    });
+  let generated;
+  try {
+    generated = generateRustProject(projectDir, outputDir);
+  } catch (error) {
+    if (error instanceof UnsupportedError) {
+      const envelope = makeEnvelope('transpile', false, started, {
+        files: [],
+        diagnostics: [],
+        sourceMaps: [],
+        summary: 'La transpilación falló.',
+        error: { message: error.message, kind: 'unsupported' },
+      });
+      return { envelope, text: `R#: ${error.message}`, textFirst: null };
+    }
+    throw error;
   }
 
-  const ok = countErrors(diagnostics) === 0;
-  const summary =
-    `Transpilado: ${files.length} archivo(s), ${sourceMaps[0].entries.length} línea(s) mapeadas` +
-    (diagnostics.length > 0 ? `, ${diagnostics.length} diagnóstico(s).` : '.');
+  const { files, sourceMaps } = generated;
+  const diagnostics = [];
+  const mapped = sourceMaps.reduce((total, map) => total + map.entries.length, 0);
+  const summary = `Transpilado: ${files.length} archivo(s), ${mapped} línea(s) mapeadas.`;
 
-  const extra = {
+  const envelope = makeEnvelope('transpile', true, started, {
     files,
     diagnostics,
     sourceMaps,
     summary,
-  };
-  if (!ok) {
-    extra.error = {
-      message: `La transpilación produjo ${countErrors(diagnostics)} error(es).`,
-      kind: 'unknown',
-    };
-  }
-
-  const envelope = makeEnvelope('transpile', ok, started, extra);
+  });
   return { envelope, text: renderText(envelope), textFirst: null };
 }
 
@@ -458,7 +518,6 @@ function commandBuild(options, started) {
   }
 
   const name = crateName(projectDir);
-  const source = pickRshSource(projectDir);
 
   fs.mkdirSync(outputDir, { recursive: true });
   fs.mkdirSync(distDir, { recursive: true });
@@ -479,23 +538,29 @@ function commandBuild(options, started) {
   ].join('\n');
   fs.writeFileSync(path.join(outputDir, 'Cargo.toml'), cargoToml, 'utf8');
 
-  // Error DELIBERADO de rustc (E0308) para probar el mapeo de source maps.
-  const mainRs = [
-    'fn main() {',
-    '    let x: i32 = "hola";',
-    `    println!("${PROGRAM_OUTPUT}");`,
-    '}',
-  ].join('\n');
-  fs.writeFileSync(path.join(outputDir, 'main.rs'), `${mainRs}\n`, 'utf8');
+  // Transpilación real de los `.rsh` del proyecto.
+  let generated;
+  try {
+    generated = generateRustProject(projectDir, outputDir);
+  } catch (error) {
+    if (error instanceof UnsupportedError) {
+      const envelope = makeEnvelope('build', false, started, {
+        files: [],
+        diagnostics: [],
+        sourceMaps: [],
+        summary: 'La transpilación falló.',
+        error: { message: error.message, kind: 'unsupported' },
+      });
+      return { envelope, text: `R#: ${error.message}`, textFirst: null };
+    }
+    throw error;
+  }
 
   const files = [
     { path: 'Cargo.toml', language: 'toml', lines: cargoToml.split('\n').length - 1 },
-    { path: 'main.rs', language: 'rust', lines: mainRs.split('\n').length },
+    ...generated.files,
   ];
-
-  const sourceMaps = [
-    linearSourceMap('main.rs', source.relPath, mainRs.split('\n').length, source.lines.length),
-  ];
+  const sourceMaps = generated.sourceMaps;
 
   const cargoArgs = ['build'];
   if (target !== 'native') {
@@ -592,7 +657,39 @@ function commandRun(options, started) {
   const distDir = options.dist
     ? resolvePath(options.dist, projectDir)
     : path.join(projectDir, DEFAULT_DIST_RELATIVE);
-  const artifact = path.join(distDir, profile === 'release' ? 'release' : 'debug', crateName(projectDir));
+  const artifact = path.join(
+    distDir,
+    profile === 'release' ? 'release' : 'debug',
+    crateName(projectDir),
+  );
+
+  // Si el binario existe, se ejecuta de verdad y su salida es la del programa.
+  if (fs.existsSync(artifact)) {
+    const execution = spawnSync(artifact, [], {
+      cwd: projectDir,
+      encoding: 'utf8',
+      windowsHide: true,
+    });
+    const stdout = execution.stdout ?? '';
+    const stderr = execution.stderr ?? '';
+    const summary = stdout.trim().split('\n').slice(-1)[0] ?? PROGRAM_OUTPUT;
+    const envelope = makeEnvelope('run', execution.status === 0, started, {
+      files: [],
+      diagnostics: [],
+      sourceMaps: [],
+      summary,
+      artifact,
+    });
+    if (stderr.trim().length > 0) {
+      envelope.cargo = {
+        command: artifact,
+        exitCode: execution.status ?? 1,
+        stdout,
+        stderr,
+      };
+    }
+    return { envelope, text: stdout || summary, textFirst: null };
+  }
 
   const envelope = makeEnvelope('run', true, started, {
     files: [],

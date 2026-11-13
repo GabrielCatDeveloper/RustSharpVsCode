@@ -32,14 +32,16 @@ que TypeScript hace con el JavaScript generado.
 │   ├── TASKS.md            Backlog de tareas (105)
 │   ├── REVIEW.md           Bitácora de revisiones
 │   └── skills/             5 skills reutilizables (SKILL.md)
+├── examples/
+│   └── rsharp-demo/        Proyecto de ejemplo (20 pruebas, incl. diferencial)
 └── extension/              La extensión de VSCode
     ├── package.json        Manifiesto de la extensión
-    ├── src/                Código TypeScript (14 módulos + tests)
+    ├── src/                Código TypeScript (19 módulos + tests)
     ├── syntaxes/           Gramática TextMate para `.rsh`
     ├── snippets/           Snippets de R#
     ├── language-configuration/
     ├── media/              Icono de la barra lateral
-    └── tools/              CLI de simulación (`mock-rsharp.mjs`)
+    └── tools/              CLI de simulación y mini-transpilador
 ```
 
 ---
@@ -73,7 +75,8 @@ Para desarrollar en VSCode: abre la raíz del repositorio y pulsa **F5**.
 | Área | Estado |
 |---|---|
 | Extensión de VSCode (comandos, gramática, diagnósticos, source maps, ejecución, depuración) | ✅ Implementada |
-| CLI `rsharp` (compilador) | ⛔ Pendiente — ver [`ai/ROADMAP.md`](ai/ROADMAP.md) |
+| Proyecto de ejemplo con flujo completo y prueba diferencial contra .NET | ✅ 20/20 pruebas |
+| CLI `rsharp` (compilador) | 🟡 Sustituido por un mini-transpilador para el ejemplo |
 | BCL por destino | ⛔ Pendiente |
 | Destino WASM completo | 🟡 Parcial (la extensión ya compila a WASM) |
 | Bindings de crates y FFI | ⛔ Pendiente |
@@ -84,6 +87,13 @@ La extensión se puede probar **hoy** con la CLI de simulación:
 ```jsonc
 // .vscode/settings.json
 { "rsharp.cliPath": "/ruta/al/repo/extension/tools/mock-rsharp.mjs" }
+```
+
+Y el proyecto de ejemplo se prueba de extremo a extremo:
+
+```bash
+npm run demo        # transpila, compila, ejecuta y compara con .NET
+npm test            # 186 pruebas de la extensión
 ```
 
 ---
