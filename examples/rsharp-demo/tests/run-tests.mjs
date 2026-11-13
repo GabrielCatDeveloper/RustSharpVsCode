@@ -238,6 +238,95 @@ if (!process.argv.includes('--no-dotnet')) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// 8. El compilador real (Roslyn) frente al mini-transpilador
+// ---------------------------------------------------------------------------
+
+const REAL_CLI = path.join(
+  REPO,
+  'compiler',
+  'src',
+  'RSharp.Cli',
+  'bin',
+  'Debug',
+  'net8.0',
+  'rsharp',
+);
+
+process.stdout.write('\n8. Compilador real (Roslyn)\n');
+if (!fs.existsSync(REAL_CLI)) {
+  process.stdout.write(
+    '  · el compilador real no está compilado (dotnet build compiler/src/RSharp.Cli): se omite.\n',
+  );
+} else {
+  const dotnetRoot = process.env.DOTNET_ROOT ?? path.join(os.homedir(), '.dotnet');
+  const environment = { ...process.env, DOTNET_ROOT: dotnetRoot };
+
+  const realBuild = spawnSync(
+    REAL_CLI,
+    ['build', '--project', PROJECT, '--json'],
+    { encoding: 'utf8', cwd: PROJECT, env: environment },
+  );
+
+  let realEnvelope;
+  try {
+    realEnvelope = JSON.parse(realBuild.stdout);
+  } catch {
+    realEnvelope = {};
+  }
+
+  check(
+    'el compilador real compila el proyecto',
+    realEnvelope.ok === true,
+    (realEnvelope.error && realEnvelope.error.message) || realBuild.stderr?.slice(0, 400),
+  );
+
+  const realBinary = path.join(
+    PROJECT,
+    'dist',
+    'debug',
+    'rsharp_demo',
+  );
+  const realRun = fs.existsSync(realBinary)
+    ? spawnSync(realBinary, [], { encoding: 'utf8', cwd: PROJECT })
+    : { status: 1, stdout: '', stderr: 'no se generó el binario' };
+
+  check(
+    'el binario del compilador real se ejecuta',
+    realRun.status === 0,
+    realRun.stderr?.slice(0, 300),
+  );
+  check(
+    'la salida del compilador real coincide con la esperada',
+    normalize(realRun.stdout) === normalize(expected),
+    `real:\n${normalize(realRun.stdout)}\nesperado:\n${normalize(expected)}`,
+  );
+
+  // Los source maps del compilador real deben estar alineados 1:1.
+  const sourceMapPath = path.join(PROJECT, 'target', 'rsharp', 'rsharp.sourcemap.json');
+  if (fs.existsSync(sourceMapPath)) {
+    const maps = JSON.parse(fs.readFileSync(sourceMapPath, 'utf8'));
+    const aligned = maps.every(
+      (map) => map.entries.every((entry) => entry.rustLine === entry.rshLine),
+    );
+    check('los source maps del compilador real están alineados 1:1', aligned);
+  } else {
+    check('el compilador real genera el archivo de source maps', false);
+  }
+
+  // El mini-transpilador y el compilador real deben coincidir.
+  const mockRun = spawnSync(
+    process.execPath,
+    [MOCK_CLI, 'run', '--project', PROJECT],
+    { encoding: 'utf8', cwd: PROJECT },
+  );
+  check(
+    'el mini-transpilador y el compilador real dan la misma salida',
+    normalize(mockRun.stdout) === normalize(realRun.stdout),
+    `mock:\n${normalize(mockRun.stdout)}\nreal:\n${normalize(realRun.stdout)}`,
+  );
+}
+
 process.stdout.write(
   `\n== ${results.passed} correctas, ${results.failed} fallidas ==\n`,
 );

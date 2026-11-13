@@ -397,6 +397,81 @@ nada mientras se escribe.
 
 ---
 
+### Revisión REV-006 · Fase 1: el compilador real de R# (Roslyn)
+
+- **Fecha:** 2026-11-13
+- **Tarea:** `T-CORE-001..016` (las marcadas como DONE) · Fase 1
+- **Revisor:** agente principal de la sesión
+- **Modelo ejecutor:** agente principal (el emisor es demasiado específico para un ejecutor externo)
+- **Fase:** Fase 1 (Núcleo del transpilador)
+- **Veredicto:** APROBADO
+
+#### Qué se ha construido
+
+La solución `compiler/RSharp.slnx` con los cinco proyectos que fija la spec §4.2:
+
+| Proyecto | Target | Estado |
+|---|---|---|
+| `RSharp.Attributes` | netstandard2.0 | 12 atributos (decisión 0004) |
+| `RSharp.Runtime` | netstandard2.0 | Diagnósticos, excepciones, lector de TOML y configuración |
+| `RSharp.Compiler` | netstandard2.0 | API pública + emisor con Roslyn |
+| `RSharp.Analyzers` | netstandard2.0 | `RSharpCoreAnalyzer` (`R#0001`) |
+| `RSharp.Cli` | net8.0 | `transpile`, `build`, `run`, `clean`, `--version` |
+
+El emisor usa el **modelo semántico de Roslyn** (no inferencias propias):
+los tipos, los símbolos y el punto de entrada salen del modelo, tal y como
+pide la spec §4.1 («El transpilador NO implementa un verificador de tipos»).
+
+#### El resultado
+
+El proyecto de ejemplo se transpila con el compilador real, el Rust generado
+compila con `cargo` y el binario produce **la misma salida** que la versión
+de .NET y que el mini-transpilador:
+
+```
+✓ el compilador real compila el proyecto
+✓ el binario del compilador real se ejecuta
+✓ la salida del compilador real coincide con la esperada
+✓ los source maps del compilador real están alineados 1:1
+✓ el mini-transpilador y el compilador real dan la misma salida
+```
+
+#### Defectos encontrados y corregidos
+
+| # | Fichero | Severidad | Descripción |
+|---|---|---|---|
+| 1 | `RustFileBuilder.cs` | Bloqueante | El bucle de relleno dejaba el índice fuera de rango: `Index was out of range`. |
+| 2 | `RustEmitter.cs` | Bloqueante | `EnumDeclarationSyntax` no deriva de `TypeDeclarationSyntax`: los `enum` no se emitían. |
+| 3 | `RustEmitter.cs` | Bloqueante | El emisor no entraba en los `namespace`: los tipos no se emitían. |
+| 4 | `RustTypeMapper.cs` | Mayor | Los tipos se comparaban por nombre (`"System.Int32"`), pero el modelo semántico los muestra como `int`: se usa `SpecialType`. |
+| 5 | `RustEmitter.cs` | Mayor | Las llaves de cierre se escribían en la línea de la declaración, dejando los métodos fuera del `impl`. |
+| 6 | `RustEmitter.cs` | Mayor | El `impl Trait` de la cola se intercalaba entre los tipos: la cola se separa y se añade al final. |
+| 7 | `RustEmitter.cs` | Mayor | Los campos de respaldo de las auto-propiedades (`<x>k__backingField`) se emitían como campos de Rust. |
+| 8 | `RustEmitter.cs` | Mayor | La asignación a una propiedad generaba `set_x(...) = valor`: ahora es una llamada al setter. |
+| 9 | `RustEmitter.cs` | Mayor | Las interfaces del proyecto se usaban como valor sin envolver en `Box<dyn Trait>`. |
+| 10 | `RustEmitter.cs` | Mayor | El `filter` de Rust recibe el elemento por referencia: los lambdas de `Where` desreferencian. |
+| 11 | `Transpiler.cs` | Mayor | El punto de entrada no se buscaba dentro de los `namespace`: no se generaba `main.rs`. |
+| 12 | `Program.cs` | Menor | La CLI no generaba la `fn main` del crate. |
+
+#### Observaciones pendientes
+
+- **O1 · El `namespace` se aplana.** Los tipos de varios `namespace` con el mismo nombre acabarían en el mismo módulo. Pendiente de la Fase 1.
+- **O2 · La herencia de clases no está.** `virtual`/`override` con clase base sigue sin emitirse: solo las interfaces.
+- **O3 · Los analizadores están incompletos.** Falta `R#0101` (BCL) y `R#0150` (librerías dinámicas en WASM).
+- **O4 · El mini-transpilador sigue en el repositorio** como referencia y para las pruebas sin .NET. Cuando el compilador real cubra más, se retira (decisión 0007, O1).
+
+#### Verificación ejecutada
+
+- `dotnet build compiler/RSharp.slnx` → compilación correcta.
+- `npm run demo` → **25/25 pruebas**, incluidas las cinco del compilador real.
+- El Rust generado está alineado línea a línea con el `.rsh` (source map 1:1) ✓.
+
+**Firma:** agente principal de la sesión · 2026-11-13 · APROBADO
+
+---
+
+---
+
 ## Plantilla para nuevas revisiones
 
 Copiar el bloque de la sección "Plantilla de revisión" y añadirlo al final de

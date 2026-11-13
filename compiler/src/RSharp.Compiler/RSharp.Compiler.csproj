@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>RSharp.Compiler</RootNamespace>
+    <Description>Transpilador de R# (C# -> Rust). No usa System.IO, red ni reloj (spec §4.2).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RSharp.Attributes\RSharp.Attributes.csproj" />
+    <ProjectReference Include="..\RSharp.Runtime\RSharp.Runtime.csproj" />
+  </ItemGroup>
+
+</Project>

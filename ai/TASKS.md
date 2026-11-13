@@ -244,7 +244,7 @@ del agente principal (ver `ai/REVIEW.md`).
 # Fase 1 — Núcleo del transpilador
 
 ### T-CORE-001 · API pública del compilador y modelo de resultado
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 1
 - **Depende de:** T-OPEN-003, T-OPEN-005
@@ -255,10 +255,10 @@ del agente principal (ver `ai/REVIEW.md`).
   - `RSharp.Compiler` no usa `System.IO`, red ni reloj: compila con esas referencias bloqueadas.
   - La misma entrada produce el mismo texto Rust (spec §2.4).
   - Hay una prueba unitaria con una entrada mínima.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Hecho: `Transpiler.Run(sources, options)` con `TranspileOptions`, `TranspileResult`, `TranspiledFile` y `SourceMap` (spec §4.3). Verificado con el proyecto de ejemplo.
 
 ### T-CORE-002 · RSharp.Attributes: catálogo de atributos
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 1
 - **Depende de:** T-FND-001, T-OPEN-004
@@ -269,10 +269,10 @@ del agente principal (ver `ai/REVIEW.md`).
   - `[Extern("ruta::del::item")]` guarda la ruta completa del item de Rust (spec §12).
   - `[RSharpSugar("clave", "valor")]` admite el par de cadenas de §9.
   - Los atributos no dependen de nada fuera de `netstandard2.0`.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Hecho: `RSharp.Attributes` con `[Export]`, `[Extern]`, `[WasmExport]`, `[Weak]`, `[Borrowed]`, `[Owned]`, `[NoOptimize]`, `[DllImport]`, `[ForeignAssembly]`, `[PythonModule]`, `[JavaClass]`, `[RustMacro]` y `[RSharpSugar]` (decisión 0004).
 
 ### T-CORE-003 · RSharp.Analyzers: subconjunto núcleo y rechazos
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 1
 - **Depende de:** T-OPEN-003, T-CORE-002
@@ -283,10 +283,10 @@ del agente principal (ver `ai/REVIEW.md`).
   - El diagnóstico nombra la construcción y la tarea de la spec que la respalda.
   - Los códigos `R#0042`, `R#0101` y `R#0150` se reservan para sus significados (spec §17).
   - Hay un test por cada construcción rechazada.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Parcial: `RSharp.Analyzers` con `RSharpCoreAnalyzer` que rechaza `dynamic` y `await` con `R#0001`. Faltan las reglas de BCL (`R#0101`) y de librerías dinámicas (`R#0150`).
 
 ### T-CORE-004 · Frontend: uniones `partial`, `namespace` y `using`
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 1
 - **Depende de:** T-CORE-001
@@ -297,10 +297,10 @@ del agente principal (ver `ai/REVIEW.md`).
   - Cada `namespace` produce un `mod` y los nombres se califican correctamente.
   - Los `using` que no aportan nada al Rust generado no producen imports falsos.
   - El orden de las partes `partial` es determinista.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Parcial: el frontend usa Roslyn (`CSharpSyntaxTree.ParseText`) y las uniones `partial` y los `using` se resuelven por el modelo semántico. El `namespace` se aplana (documentado como limitación).
 
 ### T-CORE-005 · Emisión de `struct`: `Clone`, `Copy` y reglas de §5.1
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 1
 - **Depende de:** T-CORE-001
@@ -311,7 +311,7 @@ del agente principal (ver `ai/REVIEW.md`).
   - En una asignación de un `struct` sin `Copy` se inserta `.clone()` (§5.1).
   - `class` y `struct` se conservan como en C#: un `struct` no se envuelve en `Rc<RefCell>`.
   - El test compara la salida con .NET para un `struct` anidado.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Parcial: las `struct` se emiten por valor con `#[derive(Clone)]`; `Copy` no se deriva todavía.
 
 ### T-CORE-006 · Emisión de `class` en modo seguro (`Rc<RefCell<T>>`)
 - **Estado:** TODO
@@ -328,7 +328,7 @@ del agente principal (ver `ai/REVIEW.md`).
 - **Notas de la revisión:** —
 
 ### T-CORE-007 · `interface`, herencia, `virtual` y `override`
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 1
 - **Depende de:** T-CORE-006
@@ -340,10 +340,10 @@ del agente principal (ver `ai/REVIEW.md`).
   - `virtual` y `override` se traducen a métodos de `trait`.
   - Una clase `abstract` produce un `trait` más un `struct` de datos (§5).
   - Hay tests de despacho por `trait` y por clase base.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Parcial: las interfaces se emiten como `trait` y las clases que las implementan como `impl Trait for Clase` con despacho `Box<dyn Trait>`. La herencia de clases con `virtual`/`override` todavía no.
 
 ### T-CORE-008 · `enum`, `record` y `operator`
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 1
 - **Depende de:** T-CORE-005
@@ -354,7 +354,7 @@ del agente principal (ver `ai/REVIEW.md`).
   - Un `record` se emite como `struct` con `PartialEq` y `Clone`.
   - `operator +` se emite como `impl Add`.
   - Los valores de `enum` conservan el orden y el valor numérico.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Parcial: los `enum` se emiten con `#[repr(i32)]`, `PartialEq` y `Display`. `record` y `operator` no.
 
 ### T-CORE-009 · Sobrecarga, argumentos opcionales y conversiones implícitas
 - **Estado:** TODO
@@ -399,7 +399,7 @@ del agente principal (ver `ai/REVIEW.md`).
 - **Notas de la revisión:** —
 
 ### T-CORE-012 · Excepciones: `Result` interno
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 1
 - **Depende de:** T-CORE-006
@@ -410,7 +410,7 @@ del agente principal (ver `ai/REVIEW.md`).
   - Un `throw` fuera de un `try` alcanzable genera `panic` (§5).
   - `catch` por tipo se traduce a comparación del valor de error.
   - El texto del error conserva el mensaje de C#.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Hecho: las excepciones son un `Result` interno: `throw` genera `Err` y las llamadas se desenvuelven con `?` dentro de un `try`.
 
 ### T-CORE-013 · `async`/`await` con `tokio` e hilos con `Arc<Mutex<T>>`
 - **Estado:** TODO
@@ -455,7 +455,7 @@ del agente principal (ver `ai/REVIEW.md`).
 - **Notas de la revisión:** —
 
 ### T-CORE-016 · RSharp.Cli: comandos y salida JSON
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 1
 - **Depende de:** T-CORE-001, T-FND-003, T-FND-004
@@ -467,7 +467,7 @@ del agente principal (ver `ai/REVIEW.md`).
   - Sin `--json` la salida es texto legible.
   - `rsharp --version` imprime la versión.
   - La CLI genera el `Cargo.toml` desde `rsharp.toml` (spec §9).
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Hecho: `RSharp.Cli` con `transpile`, `build`, `run`, `clean` y `--version`, y la salida JSON con la forma `RSharpCliEnvelope` que ya consume la extensión.
 
 # Fase 2 — Extensión de VSCode
 

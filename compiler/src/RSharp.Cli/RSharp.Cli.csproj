@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- La spec §4.2 fija net8.0; RollForward permite ejecutarlo con un
+         runtime más reciente sin cambiar el destino publicado. -->
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <RootNamespace>RSharp.Cli</RootNamespace>
+    <AssemblyName>rsharp</AssemblyName>
+    <Description>CLI del compilador de R#.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RSharp.Attributes\RSharp.Attributes.csproj" />
+    <ProjectReference Include="..\RSharp.Runtime\RSharp.Runtime.csproj" />
+    <ProjectReference Include="..\RSharp.Compiler\RSharp.Compiler.csproj" />
+    <ProjectReference Include="..\RSharp.Analyzers\RSharp.Analyzers.csproj" />
+  </ItemGroup>
+
+</Project>

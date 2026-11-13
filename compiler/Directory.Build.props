@@ -1,0 +1,26 @@
+<Project>
+
+  <!--
+    Propiedades comunes de la solución del compilador de R#.
+
+    La spec §4.2 fija:
+      - RSharp.Attributes   -> netstandard2.0
+      - RSharp.Runtime     -> netstandard2.0
+      - RSharp.Compiler    -> netstandard2.0  (referencia Roslyn)
+      - RSharp.Analyzers  -> netstandard2.0
+      - RSharp.Cli         -> net8.0
+  -->
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <Authors>GabrielCatDev</Authors>
+    <Product>R# (Rust#)</Product>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+</Project>

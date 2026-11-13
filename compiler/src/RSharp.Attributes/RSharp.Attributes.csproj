@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>RSharp.Attributes</RootNamespace>
+    <Description>Atributos de R#: [Export], [Extern], [WasmExport], [Weak], [Borrowed], [Owned]…</Description>
+  </PropertyGroup>
+
+</Project>

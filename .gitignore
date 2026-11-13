@@ -6,6 +6,11 @@ out/
 *.log
 .DS_Store
 
+# .NET
+compiler/**/bin/
+compiler/**/obj/
+compiler/**/TestResults/
+
 # Rust generado por las pruebas del mock
 extension/target/
 target/

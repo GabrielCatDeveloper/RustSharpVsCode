@@ -33,8 +33,16 @@ que TypeScript hace con el JavaScript generado.
 │   ├── TASKS.md            Backlog de tareas (105)
 │   ├── REVIEW.md           Bitácora de revisiones
 │   └── skills/             5 skills reutilizables (SKILL.md)
+├── compiler/               El compilador de R# (C# -> Rust)
+│   ├── RSharp.slnx         Solución .NET
+│   └── src/
+│       ├── RSharp.Attributes/   Atributos de R# (netstandard2.0)
+│       ├── RSharp.Runtime/     Tipos de apoyo y lector de TOML
+│       ├── RSharp.Compiler/    Transpilador con Roslyn (netstandard2.0)
+│       ├── RSharp.Analyzers/   Analizadores Roslyn (R#0001, R#0101, R#0150)
+│       └── RSharp.Cli/         La CLI `rsharp` (net8.0)
 ├── examples/
-│   └── rsharp-demo/        Proyecto de ejemplo (20 pruebas, incl. diferencial)
+│   └── rsharp-demo/        Proyecto de ejemplo (25 pruebas, incl. diferencial)
 └── extension/              La extensión de VSCode
     ├── package.json        Manifiesto de la extensión
     ├── src/                Código TypeScript (19 módulos + tests)
