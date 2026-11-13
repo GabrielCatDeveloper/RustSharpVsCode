@@ -1,0 +1,13 @@
+# Raíz del monorepo
+node_modules/
+out/
+*.vsix
+.vscode-test/
+*.log
+.DS_Store
+
+# Rust generado por las pruebas del mock
+extension/target/
+target/
+gen/
+dist/

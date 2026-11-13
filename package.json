@@ -1,0 +1,24 @@
+{
+  "name": "rustsharp-vscode",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Extensión de VSCode para R# (Rust#): el lenguaje C# que se transpila a Rust.",
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:GabrielCatDeveloper/RustSharpVsCode.git"
+  },
+  "workspaces": [
+    "extension"
+  ],
+  "scripts": {
+    "compile": "npm run compile --workspace extension",
+    "watch": "npm run watch --workspace extension",
+    "lint": "npm run lint --workspace extension",
+    "test": "npm run test --workspace extension",
+    "package": "npm run package --workspace extension"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

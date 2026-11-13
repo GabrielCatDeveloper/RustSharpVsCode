@@ -1,0 +1,813 @@
+{
+  "name": "R#",
+  "scopeName": "source.rsharp",
+  "fileTypes": [
+    "rsh"
+  ],
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#codeGenAI"
+    },
+    {
+      "include": "#namespace-declaration"
+    },
+    {
+      "include": "#type-declaration"
+    },
+    {
+      "include": "#using-directive"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#characters"
+    },
+    {
+      "include": "#preprocessor"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#attributes"
+    },
+    {
+      "include": "#generic-types"
+    },
+    {
+      "include": "#types"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#function-calls"
+    },
+    {
+      "include": "#variables"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#punctuation"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.block.documentation.rsharp",
+          "begin": "(///)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.comment.rsharp"
+            }
+          },
+          "end": "(?=$)",
+          "patterns": [
+            {
+              "include": "#doctags"
+            }
+          ]
+        },
+        {
+          "name": "comment.line.double-slash.rsharp",
+          "begin": "(//)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.comment.rsharp"
+            }
+          },
+          "end": "(?=$)"
+        },
+        {
+          "name": "comment.block.rsharp",
+          "begin": "/\\*",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.rsharp"
+            }
+          },
+          "end": "\\*/",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.rsharp"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#doctags"
+            }
+          ]
+        }
+      ]
+    },
+    "doctags": {
+      "patterns": [
+        {
+          "name": "meta.tag.rsharp",
+          "match": "(</?)([A-Za-z_][A-Za-z0-9_.:-]*)(/?>)",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.tag.rsharp"
+            },
+            "2": {
+              "name": "entity.name.tag.rsharp"
+            },
+            "3": {
+              "name": "punctuation.definition.tag.rsharp"
+            }
+          }
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.interpolated.double.literal.rsharp",
+          "begin": "@\\$\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.rsharp"
+            }
+          },
+          "end": "\"(?!\")",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.rsharp"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#string-interpolation"
+            },
+            {
+              "include": "#string-escape-verbatim"
+            }
+          ]
+        },
+        {
+          "name": "string.interpolated.double.rsharp",
+          "begin": "\\$\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.rsharp"
+            }
+          },
+          "end": "\"|(?=$)",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.rsharp"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#string-interpolation"
+            },
+            {
+              "include": "#string-escape"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.double.literal.rsharp",
+          "begin": "@\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.rsharp"
+            }
+          },
+          "end": "\"(?!\")",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.rsharp"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#string-escape-verbatim"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.double.rsharp",
+          "begin": "\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.rsharp"
+            }
+          },
+          "end": "\"|(?=$)",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.rsharp"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#string-escape"
+            }
+          ]
+        }
+      ]
+    },
+    "string-escape": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.rsharp",
+          "match": "\\\\(?:[abfnrtv\\\\'\"?]|0[0-7]{0,3}|x[0-9A-Fa-f]{1,2}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})"
+        }
+      ]
+    },
+    "string-escape-verbatim": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.rsharp",
+          "match": "\"\""
+        }
+      ]
+    },
+    "string-interpolation": {
+      "name": "meta.interpolation.rsharp",
+      "begin": "\\{",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.interpolation.begin.rsharp"
+        }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.interpolation.end.rsharp"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#strings"
+        },
+        {
+          "include": "#characters"
+        },
+        {
+          "include": "#numbers"
+        },
+        {
+          "include": "#generic-types"
+        },
+        {
+          "include": "#types"
+        },
+        {
+          "include": "#keywords"
+        },
+        {
+          "include": "#function-calls"
+        },
+        {
+          "include": "#operators"
+        },
+        {
+          "include": "#punctuation"
+        }
+      ]
+    },
+    "characters": {
+      "name": "string.quoted.single.rsharp",
+      "begin": "'",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.rsharp"
+        }
+      },
+      "end": "'|(?=$)",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.rsharp"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#string-escape"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.hex.rsharp",
+          "match": "\\b0[xX][0-9a-fA-F][0-9a-fA-F_]*\\b"
+        },
+        {
+          "name": "constant.numeric.binary.rsharp",
+          "match": "\\b0[bB][01][01_]*\\b"
+        },
+        {
+          "name": "constant.numeric.octal.rsharp",
+          "match": "\\b0[oO][0-7][0-7_]*\\b"
+        },
+        {
+          "name": "constant.numeric.decimal.rsharp",
+          "match": "\\b(?:[0-9][0-9_]*\\.[0-9][0-9_]*|[0-9][0-9_]*\\.?[0-9_]*)(?:[eE][+-]?[0-9_]+)?(?:[fFdDmMuUlL]+)?\\b"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.separator.rsharp",
+          "match": ";"
+        },
+        {
+          "name": "punctuation.separator.rsharp",
+          "match": ","
+        },
+        {
+          "name": "punctuation.separator.rsharp",
+          "match": ":"
+        },
+        {
+          "name": "punctuation.section.block.rsharp",
+          "match": "[{}]"
+        },
+        {
+          "name": "punctuation.section.parens.rsharp",
+          "match": "[()]"
+        },
+        {
+          "name": "punctuation.section.brackets.rsharp",
+          "match": "[\\[\\]]"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.arrow.rsharp",
+          "match": "=>"
+        },
+        {
+          "name": "keyword.operator.increment.rsharp",
+          "match": "\\+\\+|--"
+        },
+        {
+          "name": "keyword.operator.assignment.rsharp",
+          "match": "\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=|\\?="
+        },
+        {
+          "name": "keyword.operator.equality.rsharp",
+          "match": "==|!="
+        },
+        {
+          "name": "keyword.operator.relational.rsharp",
+          "match": "<=|>=|<|>"
+        },
+        {
+          "name": "keyword.operator.logical.rsharp",
+          "match": "&&|\\|\\||!"
+        },
+        {
+          "name": "keyword.operator.arithmetic.rsharp",
+          "match": "[-+*/%]"
+        },
+        {
+          "name": "keyword.operator.bitwise.rsharp",
+          "match": "&|\\||\\^|~"
+        },
+        {
+          "name": "keyword.operator.assignment.rsharp",
+          "match": "=(?!=)"
+        },
+        {
+          "name": "keyword.operator.ternary.rsharp",
+          "match": "\\?"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.rsharp",
+          "match": "\\b(?:if|else|switch|case|default|for|foreach|while|do|break|continue|return|goto|throw|try|catch|finally|await|yield|when|lock|fixed|stackalloc|checked|unchecked|sizeof|typeof|nameof|is|as)\\b"
+        },
+        {
+          "name": "keyword.declaration.rsharp",
+          "match": "\\b(?:class|struct|interface|enum|delegate|event|record|namespace|using|operator|implicit|explicit|get|set|init|add|remove|value|global|let|from|select|join|group|into|on|orderby|where|alias|args|with)\\b"
+        },
+        {
+          "name": "storage.modifier.rsharp",
+          "match": "\\b(?:public|private|protected|internal|static|readonly|const|sealed|abstract|virtual|override|partial|extern|unsafe|async|volatile|new|file|ref|out|in|params|required|scoped)\\b"
+        },
+        {
+          "name": "variable.language.rsharp",
+          "match": "\\b(?:this|base)\\b"
+        },
+        {
+          "name": "constant.language.rsharp",
+          "match": "\\b(?:true|false|null)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.rsharp",
+          "match": "\\b(?:bool|byte|sbyte|char|decimal|double|float|int|uint|long|ulong|short|ushort|object|string|void|var|dynamic|nint|nuint)\\b"
+        },
+        {
+          "name": "entity.name.type.rsharp",
+          "match": "\\b(?:Task|ValueTask|List|Dictionary|HashSet|Queue|Stack|LinkedList|SortedList|SortedDictionary|Array|IEnumerable|IEnumerator|IAsyncEnumerable|IAsyncEnumerator|IReadOnlyList|IReadOnlyCollection|ICollection|IList|IDictionary|IReadOnlyDictionary|Console|Math|File|Directory|Path|Thread|Interlocked|CancellationToken|Span|ReadOnlySpan|Memory|Action|Func|Predicate|Exception|ArgumentException|ArgumentNullException|InvalidOperationException|NotSupportedException|ObjectDisposedException|FormatException|DateTime|DateTimeOffset|TimeSpan|Guid|Random|Regex|StringBuilder|StringComparison|EqualityComparer|Comparer|Environment|Activator|Process|Stream|StreamReader|StreamWriter|BinaryReader|BinaryWriter|TextReader|TextWriter|Linq|Enumerable|Uri|Encoding|Convert|BitConverter|Marshal|IntPtr|UIntPtr)\\b"
+        }
+      ]
+    },
+    "generic-types": {
+      "name": "meta.generic.rsharp",
+      "begin": "\\b([A-Z][A-Za-z0-9_]*)\\s*(<)(?![<=])",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.type.rsharp"
+        },
+        "2": {
+          "name": "punctuation.definition.generic.begin.rsharp"
+        }
+      },
+      "end": "(>)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.generic.end.rsharp"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#generic-types"
+        },
+        {
+          "include": "#types"
+        },
+        {
+          "include": "#punctuation"
+        }
+      ]
+    },
+    "attributes": {
+      "name": "meta.attribute.rsharp",
+      "begin": "(?<![\\w\\)>])(?<!\\.)\\[[ \\t]*(?=(?:[A-Z][A-Za-z0-9_.]*[ \\t]*(?:\\(|\\]|:)|(?:assembly|module|return|field|method|param|property|event|type)[ \\t]*:))",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.annotation.begin.rsharp"
+        }
+      },
+      "end": "\\]",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.annotation.end.rsharp"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#attribute-names"
+        },
+        {
+          "include": "#strings"
+        },
+        {
+          "include": "#characters"
+        },
+        {
+          "include": "#numbers"
+        },
+        {
+          "include": "#keywords"
+        },
+        {
+          "include": "#function-calls"
+        },
+        {
+          "include": "#operators"
+        },
+        {
+          "include": "#punctuation"
+        }
+      ]
+    },
+    "attribute-names": {
+      "patterns": [
+        {
+          "name": "keyword.other.target.rsharp",
+          "match": "\\b(assembly|module|field|method|param|property|event|type|return)[ \\t]*:"
+        },
+        {
+          "name": "support.function.attribute.rsharp",
+          "match": "\\b(Export|Extern|WasmExport|PythonModule|JavaClass|DllImport|ForeignAssembly|RustMacro|Weak|Borrowed|Owned|NoOptimize|RSharpSugar)\\b"
+        },
+        {
+          "name": "entity.name.function.rsharp",
+          "match": "\\b([A-Z][A-Za-z0-9_]*(?:\\.[A-Z][A-Za-z0-9_]*)*)\\b(?=[ \\t]*(?:\\(|\\]|:))"
+        }
+      ]
+    },
+    "function-calls": {
+      "patterns": [
+        {
+          "name": "support.function.rsharp",
+          "match": "(?<=\\.)(WriteLine|Write|ReadLine|ReadAllText|ReadAllBytes|WriteAllText|WriteAllBytes|AppendAllText|Exit|GetType|GetProperties|GetMethods|GetField|GetValue|Sleep|Next|Parse|TryParse|Format|ToString|GetHashCode|Equals|Contains|Add|Remove|Clear)\\b[ \\t]*(?=\\()"
+        },
+        {
+          "name": "entity.name.function.rsharp",
+          "match": "(?<=\\.)([A-Za-z_][A-Za-z0-9_]*)[ \\t]*(?=\\()"
+        },
+        {
+          "name": "entity.name.function.rsharp",
+          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)[ \\t]*(?=\\()"
+        }
+      ]
+    },
+    "variables": {
+      "patterns": [
+        {
+          "name": "variable.other.rsharp",
+          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)[ \\t]*(?=(?![=!<>+\\-*/%&|^])=(?!=))"
+        },
+        {
+          "name": "variable.other.rsharp",
+          "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
+        }
+      ]
+    },
+    "namespace-declaration": {
+      "name": "meta.namespace.declaration.rsharp",
+      "begin": "^\\s*(namespace)[ \\t]+([A-Za-z_][A-Za-z0-9_.]*)",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.declaration.rsharp"
+        },
+        "2": {
+          "name": "entity.name.namespace.rsharp"
+        }
+      },
+      "end": "(?=[{;])|$",
+      "patterns": [
+        {
+          "include": "#punctuation"
+        }
+      ]
+    },
+    "type-declaration": {
+      "name": "meta.type.declaration.rsharp",
+      "begin": "\\b(class|struct|interface|enum|record|delegate)[ \\t]+([A-Z][A-Za-z0-9_]*)",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.declaration.rsharp"
+        },
+        "2": {
+          "name": "entity.name.type.rsharp"
+        }
+      },
+      "end": "(?=[{;])|$",
+      "patterns": [
+        {
+          "match": "([:,])[ \\t]*([A-Z][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "punctuation.separator.rsharp"
+            },
+            "2": {
+              "name": "entity.name.type.rsharp"
+            }
+          }
+        },
+        {
+          "include": "#generic-types"
+        },
+        {
+          "include": "#types"
+        },
+        {
+          "include": "#punctuation"
+        }
+      ]
+    },
+    "using-directive": {
+      "name": "meta.using.directive.rsharp",
+      "begin": "^\\s*(using)[ \\t]+(?=[A-Za-z_][A-Za-z0-9_.]*[ \\t]*;)",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.other.namespace.rsharp"
+        }
+      },
+      "end": "(?=;)",
+      "contentName": "entity.name.namespace.rsharp",
+      "patterns": [
+        {
+          "include": "#punctuation"
+        }
+      ]
+    },
+    "preprocessor": {
+      "patterns": [
+        {
+          "name": "meta.preprocessor.directive.rsharp",
+          "begin": "^\\s*(#)[ \\t]*(if)[ \\t]+(RSHARP_AI)\\b",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.directive.rsharp"
+            },
+            "2": {
+              "name": "keyword.control.directive.rsharp"
+            },
+            "3": {
+              "name": "entity.name.constant.rsharp"
+            }
+          },
+          "end": "(?=$)",
+          "contentName": "meta.preprocessor.expression.rsharp",
+          "patterns": [
+            {
+              "include": "#preprocessor-expression"
+            }
+          ]
+        },
+        {
+          "name": "meta.preprocessor.directive.rsharp",
+          "begin": "^\\s*(#)[ \\t]*(if|elif|else|endif)\\b",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.directive.rsharp"
+            },
+            "2": {
+              "name": "keyword.control.directive.rsharp"
+            }
+          },
+          "end": "(?=$)",
+          "contentName": "meta.preprocessor.expression.rsharp",
+          "patterns": [
+            {
+              "include": "#preprocessor-expression"
+            }
+          ]
+        },
+        {
+          "name": "meta.preprocessor.directive.rsharp",
+          "begin": "^\\s*(#)[ \\t]*(define|undef|region|endregion|line|error|warning|nullable|pragma|hidden|checksum)\\b",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.directive.rsharp"
+            },
+            "2": {
+              "name": "keyword.control.directive.rsharp"
+            }
+          },
+          "end": "(?=$)",
+          "contentName": "meta.preprocessor.expression.rsharp",
+          "patterns": [
+            {
+              "include": "#preprocessor-expression"
+            }
+          ]
+        }
+      ]
+    },
+    "preprocessor-expression": {
+      "patterns": [
+        {
+          "include": "#strings"
+        },
+        {
+          "name": "constant.language.rsharp",
+          "match": "\\b(?:true|false|null)\\b"
+        },
+        {
+          "name": "variable.other.rsharp",
+          "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
+        },
+        {
+          "name": "keyword.operator.rsharp",
+          "match": "&&|\\|\\||!|==|!=|<=|>=|<|>|\\+"
+        }
+      ]
+    },
+    "codeGenAI": {
+      "name": "meta.codeGenAI.block.rsharp",
+      "begin": "(#)(codeGenAI)\\b",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.directive.rsharp"
+        },
+        "2": {
+          "name": "keyword.control.rsharp"
+        }
+      },
+      "end": "(#)(end)\\b",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.directive.rsharp"
+        },
+        "2": {
+          "name": "keyword.control.rsharp"
+        }
+      },
+      "contentName": "meta.embedded.block.rsharp",
+      "patterns": [
+        {
+          "include": "#codeGenAI-header"
+        },
+        {
+          "include": "#codeGenAI-body"
+        }
+      ]
+    },
+    "codeGenAI-header": {
+      "name": "meta.codeGenAI.header.rsharp",
+      "begin": "(?<=\\bcodeGenAI)[ \\t]*(\\()",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.section.parens.begin.rsharp"
+        }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.section.parens.end.rsharp"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#strings"
+        },
+        {
+          "include": "#characters"
+        },
+        {
+          "include": "#numbers"
+        },
+        {
+          "include": "#codeGenAI-argument-names"
+        },
+        {
+          "include": "#punctuation"
+        }
+      ]
+    },
+    "codeGenAI-argument-names": {
+      "patterns": [
+        {
+          "name": "variable.parameter.rsharp",
+          "match": "\\b(mode|cost|model|provider|endpoint|budget|max_tokens|maxTokens|timeout|language|schema|temperature|top_p)\\b(?=[ \\t]*:)"
+        }
+      ]
+    },
+    "codeGenAI-body": {
+      "patterns": [
+        {
+          "include": "#comments"
+        },
+        {
+          "include": "#codeGenAI"
+        },
+        {
+          "include": "#namespace-declaration"
+        },
+        {
+          "include": "#type-declaration"
+        },
+        {
+          "include": "#strings"
+        },
+        {
+          "include": "#characters"
+        },
+        {
+          "include": "#numbers"
+        },
+        {
+          "include": "#attributes"
+        },
+        {
+          "include": "#generic-types"
+        },
+        {
+          "include": "#types"
+        },
+        {
+          "include": "#keywords"
+        },
+        {
+          "include": "#function-calls"
+        },
+        {
+          "include": "#variables"
+        },
+        {
+          "include": "#operators"
+        },
+        {
+          "include": "#punctuation"
+        }
+      ]
+    }
+  }
+}

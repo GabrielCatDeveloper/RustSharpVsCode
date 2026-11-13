@@ -1,0 +1,492 @@
+{
+  "name": "rsharp",
+  "displayName": "R# (Rust#)",
+  "description": "Extensión de VSCode para R#/Rust#: transpila C# a Rust, compila a nativo o WASM y ejecuta.",
+  "version": "0.1.0",
+  "publisher": "gabrielcatdev",
+  "license": "GPL-3.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Compilers",
+    "Debuggers"
+  ],
+  "keywords": [
+    "rsharp",
+    "rust#",
+    "c#",
+    "csharp",
+    "rust",
+    "transpiler",
+    "wasm"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GabrielCatDev/RustSharpVsCode"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:rsharp",
+    "workspaceContains:**/rsharp.toml",
+    "onFileSystem:rsharp"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "El transpilador ejecuta código del proyecto; se pide confirmación en espacios de trabajo no confiables."
+    }
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "rsharp",
+        "aliases": [
+          "R#",
+          "Rust#",
+          "rsharp"
+        ],
+        "extensions": [
+          ".rsh"
+        ],
+        "configuration": "./language-configuration/rsharp.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "rsharp",
+        "scopeName": "source.rsharp",
+        "path": "./syntaxes/rsharp.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.rsharp": "rsharp"
+        }
+      }
+    ],
+    "commands": [
+      {
+        "command": "rsharp.transpile",
+        "title": "Transpile",
+        "category": "R#",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "rsharp.build",
+        "title": "Build",
+        "category": "R#",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "rsharp.buildRelease",
+        "title": "Build Release",
+        "category": "R#",
+        "icon": "$(package)"
+      },
+      {
+        "command": "rsharp.buildWasm",
+        "title": "Build WASM",
+        "category": "R#",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "rsharp.run",
+        "title": "Run",
+        "category": "R#",
+        "icon": "$(play)"
+      },
+      {
+        "command": "rsharp.clean",
+        "title": "Clean",
+        "category": "R#",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "rsharp.chooseOutputFolder",
+        "title": "Choose Output Folder",
+        "category": "R#",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "rsharp.chooseDistFolder",
+        "title": "Choose Dist Folder",
+        "category": "R#",
+        "icon": "$(folder)"
+      },
+      {
+        "command": "rsharp.showOutput",
+        "title": "Show Output",
+        "category": "R#",
+        "icon": "$(output)"
+      },
+      {
+        "command": "rsharp.selectTarget",
+        "title": "Select Build Target",
+        "category": "R#"
+      },
+      {
+        "command": "rsharp.selectProfile",
+        "title": "Select Build Profile",
+        "category": "R#"
+      },
+      {
+        "command": "rsharp.openGeneratedRust",
+        "title": "Open Generated Rust File",
+        "category": "R#"
+      },
+      {
+        "command": "rsharp.copyGeneratedRust",
+        "title": "Copy Generated Rust File",
+        "category": "R#"
+      },
+      {
+        "command": "rsharp.restartLanguageServer",
+        "title": "Restart Roslyn / C# Language Server",
+        "category": "R#",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "rsharp.toggleCSharpAssociation",
+        "title": "Toggle C# Language Association for .rsh",
+        "category": "R#"
+      },
+      {
+        "command": "rsharp.showToolchainStatus",
+        "title": "Show Toolchain Status",
+        "category": "R#"
+      },
+      {
+        "command": "rsharp.debug",
+        "title": "Debug (CodeLLDB)",
+        "category": "R#",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "rsharp.toggleRustDetail",
+        "title": "Mostrar / ocultar el detalle de Rust en los errores",
+        "category": "R#",
+        "icon": "$(eye)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "rsharp.transpile",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.build",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.buildRelease",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.buildWasm",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.run",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.clean",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.chooseOutputFolder",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.chooseDistFolder",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.showOutput",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.selectTarget",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.selectProfile",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.openGeneratedRust",
+          "when": "false"
+        },
+        {
+          "command": "rsharp.copyGeneratedRust",
+          "when": "false"
+        },
+        {
+          "command": "rsharp.restartLanguageServer",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.toggleCSharpAssociation",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.showToolchainStatus",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.debug",
+          "when": "true"
+        },
+        {
+          "command": "rsharp.toggleRustDetail",
+          "when": "true"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "rsharp.run",
+          "when": "resourceLangId == rsharp",
+          "group": "navigation@1"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "rsharp.transpile",
+          "when": "resourceLangId == rsharp",
+          "group": "rsharp@1"
+        },
+        {
+          "command": "rsharp.build",
+          "when": "resourceLangId == rsharp",
+          "group": "rsharp@2"
+        },
+        {
+          "command": "rsharp.run",
+          "when": "resourceLangId == rsharp",
+          "group": "rsharp@3"
+        },
+        {
+          "command": "rsharp.buildWasm",
+          "when": "resourceLangId == rsharp",
+          "group": "rsharp@4"
+        },
+        {
+          "command": "rsharp.chooseOutputFolder",
+          "when": "resourceLangId == rsharp",
+          "group": "rsharp@5"
+        },
+        {
+          "command": "rsharp.debug",
+          "when": "resourceLangId == rsharp",
+          "group": "rsharp@6"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "rsharp.transpile",
+          "when": "resourceLangId == rsharp",
+          "group": "rsharp@1"
+        },
+        {
+          "command": "rsharp.build",
+          "when": "resourceLangId == rsharp",
+          "group": "rsharp@2"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "rsharp.transpile",
+          "when": "view == rsharp.explorer",
+          "group": "navigation@1"
+        },
+        {
+          "command": "rsharp.build",
+          "when": "view == rsharp.explorer",
+          "group": "navigation@2"
+        },
+        {
+          "command": "rsharp.run",
+          "when": "view == rsharp.explorer",
+          "group": "navigation@3"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "rsharp",
+          "title": "R#",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "rsharp": [
+        {
+          "id": "rsharp.explorer",
+          "name": "R# Project",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "R# (Rust#)",
+      "properties": {
+        "rsharp.cliPath": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "markdownDescription": "Ruta al ejecutable `rsharp` (CLI del compilador R#). Si termina en `.dll`, la extensión lo ejecutará con `dotnet`. Si es `null`, la extensión lo busca en el `PATH`, en `~/.dotnet/tools` y junto a la extensión.",
+          "scope": "machine-overridable"
+        },
+        "rsharp.dotnetPath": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "markdownDescription": "Ruta a `dotnet`. Necesario para ejecutar `rsharp` cuando la CLI se distribuye como DLL.",
+          "scope": "machine-overridable"
+        },
+        "rsharp.cargoPath": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "markdownDescription": "Ruta a `cargo`. Si es `null`, se usa el `cargo` del `PATH`.",
+          "scope": "machine-overridable"
+        },
+        "rsharp.outputDir": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "markdownDescription": "Carpeta donde se genera el Rust. Tiene **menor** prioridad que `[paths].output` de `rsharp.toml`.",
+          "scope": "resource"
+        },
+        "rsharp.distDir": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "markdownDescription": "Carpeta donde se compila el binario. Tiene **menor** prioridad que `[paths].dist` de `rsharp.toml`.",
+          "scope": "resource"
+        },
+        "rsharp.target": {
+          "type": "string",
+          "default": "native",
+          "enum": [
+            "native",
+            "wasm32-unknown-unknown",
+            "wasm32-wasip1"
+          ],
+          "description": "Destino de compilación. Tiene menor prioridad que `[build].target` de `rsharp.toml`.",
+          "scope": "resource"
+        },
+        "rsharp.profile": {
+          "type": "string",
+          "default": "debug",
+          "enum": [
+            "debug",
+            "release"
+          ],
+          "description": "Perfil de compilación. Tiene menor prioridad que `rsharp.toml`.",
+          "scope": "resource"
+        },
+        "rsharp.runTarget": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "native",
+            "wasm32-unknown-unknown",
+            "wasm32-wasip1"
+          ],
+          "description": "Destino usado por `R#: Build WASM` y `R#: Run`.",
+          "scope": "resource"
+        },
+        "rsharp.autoDetectToolchain": {
+          "type": "boolean",
+          "default": true,
+          "description": "Buscar `dotnet`, `cargo` y `rsharp` automáticamente al activarse.",
+          "scope": "machine-overridable"
+        },
+        "rsharp.csharpLanguageAssociation": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Asociar `*.rsh` con el lenguaje `csharp` para obtener las funciones de Roslyn / C# Dev Kit (autocompletado, diagnóstico, refactor). Cuando está apagado se usa la gramática propia de R#.",
+          "scope": "resource"
+        },
+        "rsharp.showRustDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Publicar los errores de `rustc` como diagnósticos de VSCode, traducidos a la línea del archivo `.rsh` mediante source maps.",
+          "scope": "resource"
+        },
+        "rsharp.verboseLogging": {
+          "type": "boolean",
+          "default": false,
+          "description": "Registrar en el panel de salida los comandos ejecutados y su salida completa.",
+          "scope": "resource"
+        },
+        "rsharp.cleanBeforeBuild": {
+          "type": "boolean",
+          "default": false,
+          "description": "Limpiar la carpeta de salida y la de distribución antes de compilar.",
+          "scope": "resource"
+        },
+        "rsharp.confirmOutsideWorkspace": {
+          "type": "boolean",
+          "default": true,
+          "description": "Pedir confirmación cuando la carpeta elegida esté fuera del espacio de trabajo.",
+          "scope": "resource"
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[rsharp]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 4,
+        "editor.wordBasedSuggestions": "off"
+      }
+    },
+    "keybindings": [
+      {
+        "command": "rsharp.build",
+        "key": "ctrl+shift+b",
+        "when": "editorLangId == rsharp"
+      },
+      {
+        "command": "rsharp.run",
+        "key": "ctrl+f5",
+        "when": "editorLangId == rsharp"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "rsharp",
+        "path": "./snippets/rsharp.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "tsc -p ./ --noEmit",
+    "test": "npm run compile && node --test out/test/*.test.js",
+    "package": "vsce package --no-dependencies --out rsharp.vsix",
+    "vscode:publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.1",
+    "typescript": "^5.5.4"
+  }
+}

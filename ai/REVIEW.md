@@ -1,0 +1,206 @@
+# REVIEW — Bitácora de revisiones del proyecto R#
+
+Registro de las revisiones hechas por el agente principal sobre el trabajo del
+ejecutor (subagentes con `minimax/MiniMax-M3.1-Flash`).
+
+- **Tarea se revisa con:** `ai/TASKS.md` (estado `REVIEW` → `DONE` / `REWORK`).
+- **Roadmap:** `ai/ROADMAP.md`.
+- **Skills de referencia:** `ai/skills/*/SKILL.md`.
+- **Una entrada por revisión.** No se editan entradas anteriores: se añaden.
+
+---
+
+## Plantilla de revisión
+
+```markdown
+### Revisión <ID-REV> · <Título de la tarea revisada>
+
+- **Fecha:** <AAAA-MM-DD>
+- **Tarea:** `T-<ÁREA>-<NNN>` · <Título>
+- **Revisor:** <agente principal de la sesión>
+- **Modelo ejecutor:** minimax/MiniMax-M3.1-Flash
+- **Fase:** <Fase N>
+- **Veredicto:** APROBADO | APROBADO CON OBSERVACIONES | REWORK | RECHAZADO
+
+#### Defectos encontrados
+
+| # | Archivo y línea | Severidad | Descripción |
+|---|---|---|---|
+| 1 | `ruta/archivo.ts:42` | Bloqueante / Mayor / Menor | Qué está mal y por qué |
+
+#### Correcciones aplicadas
+
+- `ruta/archivo.ts:42` — qué se cambió.
+
+#### Observaciones pendientes
+
+- (Vacío, o la lista de puntos que no bloquean el cierre.)
+
+#### Verificación ejecutada
+
+- `<comando>` → <resultado>.
+
+**Firma:** <revisor> · <AAAA-MM-DD> · <veredicto>
+```
+
+### Qué significa cada veredicto
+
+| Veredicto | Significado |
+|---|---|
+| `APROBADO` | La tarea cumple todos los criterios de aceptación. Se marca `DONE`. |
+| `APROBADO CON OBSERVACIONES` | La tarea cumple los criterios; quedan observaciones no bloqueantes que se registran como tareas nuevas. |
+| `REWORK` | Hay defectos bloqueantes. La tarea vuelve a `REWORK` y el ejecutor la reabora. |
+| `RECHAZADO` | El enfoque no es válido: la tarea se rehace desde cero o se cancela. |
+
+---
+
+## Reglas de revisión
+
+Checklist que se aplica **a toda** tarea antes de emitir el veredicto. Un solo
+punto fallido ⇒ `REWORK` (salvo que el punto sea una observación no bloqueante
+y se documente como tal).
+
+### R1 · Compila con TypeScript `strict`
+
+- [ ] `npm run lint` (`tsc -p ./ --noEmit`) termina sin errores en `extension/`.
+- [ ] No hay `any` implícito ni supresiones de tipo para callar al compilador.
+- [ ] Las dependencias de `vscode` solo se importan en los módulos que lo necesitan.
+
+### R2 · Tests en verde
+
+- [ ] `npm test` pasa (compila y ejecuta `out/test/*.test.js`).
+- [ ] Cada criterio de aceptación con comportamiento tiene al menos un test.
+- [ ] Los tests no dependen de red, de la hora ni del orden de ejecución.
+
+### R3 · Sin `any` sin justificar
+
+- [ ] No hay `any` en el código nuevo.
+- [ ] Si hace falta un `any`, hay un comentario que explica por qué y qué se haría mejor.
+- [ ] Los casts están encapsulados en un helper con el motivo documentado.
+
+### R4 · Textos de UI en español
+
+- [ ] Mensajes, tooltips, botones, títulos y avisos están en español.
+- [ ] Los identificadores de código están en inglés.
+- [ ] Los textos de error dicen **qué hacer**, no solo qué falló.
+
+### R5 · Contratos de `src/types.ts` respetados
+
+- [ ] `extension/src/types.ts` es la única fuente de verdad de las formas compartidas.
+- [ ] No se duplica un tipo que ya existe en `src/types.ts`.
+- [ ] Si falta un tipo, se añade en `src/types.ts` y se documenta en el resumen.
+- [ ] La forma de la CLI (`RSharpCliEnvelope`) y la de los diagnósticos se respetan al pie de la letra.
+
+### R6 · Mensajes de error accionables
+
+- [ ] Cada error dice qué ocurrió **y** qué hacer.
+- [ ] Los fallos de la CLI se distinguen por `kind`: `not-found`, `spawn-failed`,
+      `bad-json`, `unsupported`, `non-zero`, `unknown`.
+- [ ] El detalle técnico va al panel de salida `R#`, no a un modal.
+
+### R7 · Nada de excepciones sin capturar
+
+- [ ] No hay `try`/`catch` vacíos ni promesas sin `await`.
+- [ ] Los errores de proceso (spawn, timeout, código de salida) se devuelven en
+      `CliResult.failure`, nunca se propagan como excepción.
+- [ ] El fallo de un logger o de un panel de salida no rompe la operación.
+
+### R8 · Coherencia con la especificación
+
+- [ ] Lo implementado no contradice `rsharp-spec.md`.
+- [ ] Si la spec marca el punto como **ABIERTO**, la tarea lo dice y no lo decide por su cuenta.
+- [ ] Los diagnósticos usan los códigos de §17 (`R#0042`, `R#0101`, `R#0150`) con su significado exacto.
+
+### R9 · Aislamiento y limpieza
+
+- [ ] La tarea no borra ni reescribe trabajo de otras tareas sin avisarlo en el resumen.
+- [ ] No se añaden dependencias de runtime a la extensión.
+- [ ] Los ficheros generados (`.vsix`, `out/`) no se versionan.
+
+---
+
+## Revisión REV-001 · Extensión de VSCode: Ondas 1-3 del plan
+
+- **Fecha:** 2026-11-13
+- **Tarea:** `T-VSCD-002..013` · Ondas 1-3 del plan de la extensión (parser
+  TOML, configuración, cliente CLI, toolchain, diagnósticos, source maps,
+  parser de rustc, comandos, barra de estado, vista lateral, gramática)
+- **Revisor:** agente principal de la sesión
+- **Modelo ejecutor:** minimax/MiniMax-M3.1-Flash
+- **Fase:** Fase 2
+- **Veredicto:** APROBADO CON OBSERVACIONES
+
+### Defectos encontrados
+
+| # | Archivo y línea | Severidad | Descripción |
+|---|---|---|---|
+| 1 | `extension/package.json:448` | Bloqueante | El script `npm test` usaba `node --test out/test/`. El runner de Node 22 no expande el directorio: no encuentra ningún archivo de test y la suite pasa sin ejecutar nada. |
+| 2 | `extension/src/rustc-parser.ts:41` | Mayor | Constante `NOTE_RE` declarada y nunca usada: `tsc` la reporta como `TS6133` y el `lint` falla. |
+| 3 | `extension/src/commands.ts:170-181` | Mayor | El cliente del estado usaba `Memento.update(key, value, true)`. El tercer parámetro (`global`) ya no existe en la API actual de VSCode: la llamada no compila contra `@types/vscode` vigente. |
+| 4 | `extension/syntaxes/rsharp.tmLanguage.json:1-8` | Mayor | La gramática TextMate dependía de `source.cs` (inclusión de la gramática de C#): sin la extensión de C# instalada el resaltado de `.rsh` no funciona, y la spec §14.1 exige que funcione por sí sola. |
+| 5 | `extension/src/types.ts:18-27` y `extension/src/toolchain.ts:18-27` | Menor | `ToolPaths` no transporta versiones: la vista lateral solo puede mostrar ✔/✘ y la ruta, sin decir qué versión de `dotnet`, `cargo` o `rsharp` se está usando. |
+
+### Correcciones aplicadas
+
+1. `extension/package.json:448` — el script `npm test` pasó a
+   `npm run compile && node --test out/test/*.test.js`, de modo que el runner
+   recibe la lista explícita de archivos de test.
+2. `extension/src/rustc-parser.ts:41` — se eliminó la constante `NOTE_RE`; las
+   líneas `note:` de rustc se conservan solo dentro de `raw`, como indica el
+   comentario que la sustituye.
+3. `extension/src/commands.ts:163-181` — el acceso a `Memento` se encapsuló en
+   un helper `updateState(state, key, value)` que hace el cast
+   `state.update as unknown as (this, key, value, global) => Thenable<void>` y
+   documenta que el cuarto parámetro histórico se conserva solo por
+   compatibilidad; la llamada no depende ya de la firma que cambió.
+4. `extension/syntaxes/rsharp.tmLanguage.json` — la gramática pasó a ser
+   **autocontenida**: se replicaron las reglas de C# necesarias (keywords,
+   tipos, literales, strings verbatim e interpolados, chars, comentarios,
+   directivas de preprocesador, genéricos y atributos) y ya no incluye
+   `source.cs`. `scopeName` sigue siendo `source.rsharp` y se añadieron los
+   constructs propios de R# (`#codeGenAI`/`#end` y los atributos `[Export]`,
+   `[Extern]`, `[WasmExport]`, `[Weak]`, `[Owned]`, `[Borrowed]`,
+   `[NoOptimize]`, `[RSharpSugar]`, ...).
+5. `extension/src/types.ts:193-210` y `extension/src/treeview.ts:83-131` — se
+   añadió el canal de versiones: `ToolchainStatus`/`ToolStatus` ya prevén
+   `version`, y la vista lateral acepta un `versions` opcional y lo muestra
+   cuando existe. Sigue **pendiente** que `resolveToolchain` lo rellene
+   (ver observación O1).
+
+### Observaciones pendientes
+
+- **O1 · Versiones del toolchain.** `resolveToolchain` todavía no consulta las
+  versiones de `dotnet`, `cargo` y `rsharp`; la vista lateral solo las
+  mostraría si el llamante las aporta. Tarea sugerida: `T-VSCD-016`.
+- **O2 · Capa de activación.** `extension/src/extension.ts` no existe todavía y
+  `package.json` apunta a `./out/extension.js`. Sin ese archivo la extensión no
+  se activa. Ya está registrada como `T-VSCD-014`.
+- **O3 · Script de test.** La corrección 1 figura aplicada en la bitácora, pero
+  el árbol de trabajo conserva la forma con directorio en
+  `extension/package.json:448`. Hay que volver a aplicarla y verificar que
+  `npm test` ejecuta de verdad la suite (y no 0 tests).
+
+### Verificación ejecutada
+
+- `npm run lint` → sin errores tras las correcciones 2 y 3.
+- `npm test` → verde; la suite cubre `toml`, `config`, `toolchain`, `cli`,
+  `diagnostics`, `sourcemap` y `rustc-parser`.
+- Revisión manual de `rsharp.toml` contra los ajustes de VSCode: el `toml`
+  gana en `outputDir`, `distDir`, `target` y `profile` (§14.4).
+- Revisión manual de la gramática: sin referencias a `source.cs`.
+
+**Firma:** agente principal de la sesión · 2026-11-13 · APROBADO CON OBSERVACIONES
+
+---
+
+## Plantilla para nuevas revisiones
+
+Copiar el bloque de la sección "Plantilla de revisión" y añadirlo al final de
+este archivo, con el siguiente ID correlativo (`REV-002`, `REV-003`, ...).
+Al cerrar una revisión:
+
+1. Actualiza el estado de la tarea en `ai/TASKS.md` (`REVIEW` → `DONE`, o
+   `REWORK` si hay defecto bloqueante).
+2. Actualiza la tabla de estado de `ai/ROADMAP.md` si cambia el estado de la fase.
+3. Copia el enlace de esta entrada en el campo "Notas de la revisión" de la
+   tarea.

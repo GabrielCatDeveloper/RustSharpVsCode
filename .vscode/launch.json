@@ -1,0 +1,30 @@
+# Depuración de la extensión (F5)
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Ejecutar la extensión",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/extension"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/extension/out/**/*.js"
+      ],
+      "preLaunchTask": "npm: compile",
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    {
+      "name": "Ejecutar las pruebas",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/extension/out/test/run-tests.js",
+      "cwd": "${workspaceFolder}/extension",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ]
+}

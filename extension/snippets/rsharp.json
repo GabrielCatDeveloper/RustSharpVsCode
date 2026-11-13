@@ -1,0 +1,72 @@
+{
+  "class": {
+    "name": "class",
+    "prefix": "class",
+    "body": [
+      "public class ${1:Name}",
+      "{",
+      "\t$0",
+      "}"
+    ],
+    "description": "Clase pública de R# (se transpila a Rc<RefCell<T>> en Rust)"
+  },
+  "namespace": {
+    "name": "namespace",
+    "prefix": "namespace",
+    "body": [
+      "namespace ${1:Namespace}",
+      "{",
+      "\t$0",
+      "}"
+    ],
+    "description": "Namespace de R# (se transpila a mod en Rust)"
+  },
+  "main": {
+    "name": "main",
+    "prefix": "main",
+    "body": [
+      "public static void Main(string[] args)",
+      "{",
+      "\t$0",
+      "}"
+    ],
+    "description": "Punto de entrada de un programa R#"
+  },
+  "export": {
+    "name": "export",
+    "prefix": "export",
+    "body": [
+      "[Export]",
+      "$0"
+    ],
+    "description": "Atributo [Export]: genera una API estable para módulos .rs escritos a mano"
+  },
+  "codeGenAI": {
+    "name": "codeGenAI",
+    "prefix": "codeGenAI",
+    "body": [
+      "#codeGenAI(mode: \"dynamic\", cost: \"tokens\") \"${1:descripcion}\"",
+      "\t$0",
+      "#end"
+    ],
+    "description": "Bloque con IA: el contenido se genera con un modelo local y se guarda en rsharp.lock"
+  },
+  "extern": {
+    "name": "extern",
+    "prefix": "extern",
+    "body": [
+      "[Extern(\"${1:path::to::item}\")]",
+      "$0"
+    ],
+    "description": "Atributo [Extern]: enlaza con un item de Rust por su ruta"
+  },
+  "wasmExport": {
+    "name": "wasmExport",
+    "prefix": "wasmExport",
+    "body": [
+      "[WasmExport]",
+      "$0"
+    ],
+    "description": "Atributo [WasmExport]: marca una función como visible desde JavaScript"
+  }
+}
