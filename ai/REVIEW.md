@@ -472,6 +472,70 @@ de .NET y que el mini-transpilador:
 
 ---
 
+### Revisión REV-007 · Los diagnósticos de la spec: R#0001, R#0101 y R#0150
+
+- **Fecha:** 2026-11-13
+- **Tarea:** `T-CORE-003` · RSharp.Analyzers
+- **Revisor:** agente principal de la sesión
+- **Modelo ejecutor:** agente principal
+- **Fase:** Fase 1 (Núcleo del transpilador)
+- **Veredicto:** APROBADO
+
+#### Qué se ha hecho
+
+Los tres códigos que fija la spec §17 ya se emiten, con la posición exacta
+del `.rsh`:
+
+| Código | Cuándo | Dónde se comprueba |
+|---|---|---|
+| `R#0001` | Construcción fuera del núcleo v1 (`dynamic`, `await`) | `RSharpCoreAnalyzer` |
+| `R#0101` | API fuera de la BCL v1, o que no existe en el destino | `RSharpBclAnalyzer` + `TargetRules` |
+| `R#0150` | El destino no admite librerías dinámicas | `RSharpDynamicLibrariesAnalyzer` + `TargetRules` |
+
+El compilador ejecuta los analizadores con `Compilation.WithAnalyzers` y
+traduce sus diagnósticos al sobre JSON que ya consume la extensión.
+
+#### Defectos encontrados
+
+| # | Fichero | Severidad | Descripción |
+|---|---|---|---|
+| 1 | `RSharpCoreAnalyzer.cs` | Bloqueante | Roslyn **exige** que el ID del diagnóstico sea un identificador válido: `R#0001` no lo es (`#` no vale) y el analizador lanzaba `ArgumentException`. |
+| 2 | `RSharpCoreAnalyzer.cs` | Mayor | `SyntaxKind.DynamicKeyword` no existe en Roslyn 4.8, y `DynamicExpressionSyntax` tampoco: en C# `dynamic` es un tipo normal. |
+| 3 | `RSharpCoreAnalyzer.cs` | Mayor | La detección de `dynamic` comprobaba que el padre del identificador fuera un `TypeSyntax`, pero el identificador **es** el tipo: su padre es la declaración. |
+| 4 | `Transpiler.cs` | Mayor | `CSharpCompilationOptions.WithAnalyzers` no existe en Roslyn 4.8; la vía es `Compilation.WithAnalyzers` (extensión de `Microsoft.CodeAnalysis.Diagnostics`). |
+
+#### La solución del ID
+
+Los analizadores usan IDs válidos para Roslyn (`RS0001`, `RS0101`, `RS0150`) y
+el compilador los traduce a los códigos de la spec (`R#0001`, `R#0101`,
+`R#0150`) al emitir el sobre JSON. El usuario nunca ve los IDs internos.
+
+#### Observaciones pendientes
+
+- **O1 · El destino en los analizadores.** Desde el IDE, los analizadores leen
+  el destino de `build_property.RSHARP_TARGET` (MSBuild). Desde la CLI, el
+  compilador aplica las reglas del destino directamente (`TargetRules`).
+- **O2 · La lista de la BCL.** El analizador cubre ahora las APIs
+  siempre prohibidas y las de WASM; la lista completa está en
+  `docs/decisions/0002-bcl-v1-types.md` y se ampliará con ella.
+
+#### Verificación ejecutada
+
+- `npm run demo` → **29/29 pruebas**, incluidas las cuatro de los
+  diagnósticos:
+  ```
+  ✓ el compilador rechaza `dynamic` (R#0001)
+  ✓ el compilador rechaza `File.ReadAllText` en WASM (R#0101)
+  ✓ el compilador rechaza el enlace dinámico en WASM (R#0150)
+  ✓ los diagnósticos apuntan al archivo .rsh
+  ```
+
+**Firma:** agente principal de la sesión · 2026-11-13 · APROBADO
+
+---
+
+---
+
 ## Plantilla para nuevas revisiones
 
 Copiar el bloque de la sección "Plantilla de revisión" y añadirlo al final de

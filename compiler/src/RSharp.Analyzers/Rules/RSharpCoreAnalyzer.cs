@@ -25,8 +25,12 @@ namespace RSharp.Analyzers.Rules
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class RSharpCoreAnalyzer : DiagnosticAnalyzer
     {
+        /// <summary>
+        /// ID interno del diagnóstico (Roslyn exige un identificador válido; el
+        /// código de la spec, «R#0001», se aplica al traducir el resultado).
+        /// </summary>
         /// <summary>ID del diagnóstico: construcción fuera del núcleo v1.</summary>
-        public const string NotInCoreId = "R#0001";
+        public const string NotInCoreId = "RS0001";
 
         private static readonly DiagnosticDescriptor NotInCore = new DiagnosticDescriptor(
             NotInCoreId,
@@ -56,8 +60,8 @@ namespace RSharp.Analyzers.Rules
         /// `dynamic` no tiene equivalente en el núcleo v1 (spec §6.1).
         /// </summary>
         /// <remarks>
-        /// En C#, `dynamic` es un tipo como cualquier otro: se detecta por su
-        /// identificador.
+        /// Se detecta por el símbolo: en C#, <c>dynamic</c> es un tipo
+        /// especial del modelo semántico.
         /// </remarks>
         private static void AnalyzeDynamicType(SyntaxNodeAnalysisContext context)
         {
@@ -67,13 +71,11 @@ namespace RSharp.Analyzers.Rules
                 return;
             }
 
-            // Solo cuenta si se usa como tipo, no como variable.
-            if (!(node.Parent is TypeSyntax))
+            ISymbol? symbol = context.SemanticModel.GetSymbolInfo(node).Symbol;
+            if (symbol is ITypeSymbol type && type.TypeKind == TypeKind.Dynamic)
             {
-                return;
+                context.ReportDiagnostic(Diagnostic.Create(NotInCore, node.GetLocation(), "dynamic"));
             }
-
-            context.ReportDiagnostic(Diagnostic.Create(NotInCore, node.GetLocation(), "dynamic"));
         }
 
         /// <summary>

@@ -46,6 +46,12 @@ namespace RSharp.Compiler
         public string? SugarHash { get; set; }
 
         /// <summary>
+        /// Analizadores que se aplican al compilar.
+        /// </summary>
+        public IReadOnlyList<Microsoft.CodeAnalysis.Diagnostics.DiagnosticAnalyzer> Analyzers { get; set; } =
+            new List<Microsoft.CodeAnalysis.Diagnostics.DiagnosticAnalyzer>();
+
+        /// <summary>
         /// Valores de <em>sugar</em> por ámbito, para decidir si una
         /// construcción exige concesión (spec §8.2).
         /// </summary>

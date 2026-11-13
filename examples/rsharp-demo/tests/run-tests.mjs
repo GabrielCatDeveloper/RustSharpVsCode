@@ -327,6 +327,75 @@ if (!fs.existsSync(REAL_CLI)) {
   );
 }
 
+process.stdout.write('\n9. Diagnósticos del compilador (spec §17)\n');
+{
+  const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'rsharp-diag-'));
+  try {
+    fs.mkdirSync(path.join(workdir, 'src'));
+    fs.writeFileSync(
+      path.join(workdir, 'rsharp.toml'),
+      ['schema = 1', '[project]', 'name = "diag"', '[build]', 'target = "wasm32-unknown-unknown"', ''].join('\n'),
+    );
+    fs.writeFileSync(
+      path.join(workdir, 'src', 'Program.rsh'),
+      [
+        'using System;',
+        'using System.IO;',
+        'using System.Runtime.InteropServices;',
+        '',
+        'public class Program',
+        '{',
+        '    [DllImport("mylib")]',
+        '    public static extern int Native();',
+        '',
+        '    public static void Main(string[] args)',
+        '    {',
+        '        string text = File.ReadAllText("datos.txt");',
+        '        dynamic value = 42;',
+        '        Console.WriteLine(text);',
+        '    }',
+        '}',
+        '',
+      ].join('\n'),
+    );
+
+    const realCli = path.join(REPO, 'compiler', 'src', 'RSharp.Cli', 'bin', 'Debug', 'net8.0', 'rsharp');
+    if (fs.existsSync(realCli)) {
+      const environment = {
+        ...process.env,
+        DOTNET_ROOT: process.env.DOTNET_ROOT ?? path.join(os.homedir(), '.dotnet'),
+      };
+      const diagnostics = spawnSync(realCli, ['transpile', '--project', workdir, '--json'], {
+        encoding: 'utf8',
+        cwd: workdir,
+        env: environment,
+      });
+      const envelope = JSON.parse(diagnostics.stdout);
+      const codes = (envelope.diagnostics ?? []).map((diagnostic) => diagnostic.code);
+
+      check('el compilador rechaza `dynamic` (R#0001)', codes.includes('R#0001'), codes.join(', '));
+      check(
+        'el compilador rechaza `File.ReadAllText` en WASM (R#0101)',
+        codes.includes('R#0101'),
+        codes.join(', '),
+      );
+      check(
+        'el compilador rechaza el enlace dinámico en WASM (R#0150)',
+        codes.includes('R#0150'),
+        codes.join(', '),
+      );
+      check(
+        'los diagnósticos apuntan al archivo .rsh',
+        (envelope.diagnostics ?? []).every((diagnostic) => diagnostic.file === 'src/Program.rsh'),
+      );
+    } else {
+      process.stdout.write('  · el compilador real no está compilado: se omite.\n');
+    }
+  } finally {
+    fs.rmSync(workdir, { recursive: true, force: true });
+  }
+}
+
 process.stdout.write(
   `\n== ${results.passed} correctas, ${results.failed} fallidas ==\n`,
 );

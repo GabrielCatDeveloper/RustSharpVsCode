@@ -428,8 +428,10 @@ compilador o para tocar a mano una parte), está a un clic:
 - Traducción de los errores de `rustc` a la línea del `.rsh` mediante source
   maps, con el formato `R# error [E0308]: ...`.
 - Traducción de los pánicos en tiempo de ejecución a la línea del `.rsh`.
-- Publicación de diagnósticos de R# (`R#0042`, `R#0101`, `R#0150`) en el
-  editor, con su ayuda.
+- Publicación de diagnósticos de R# en el editor, con su ayuda y la línea
+  exacta del `.rsh`: `R#0001` (construcción fuera del núcleo), `R#0042`
+  (falta un `sugar`), `R#0101` (API no soportada en el destino) y `R#0150`
+  (el destino no admite librerías dinámicas).
 - Ejecución en un seudoterminal: la salida se ve en la terminal y se puede
   capturar para detectar pánicos.
 - Sesión persistente: los source maps se guardan en

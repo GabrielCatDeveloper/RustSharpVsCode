@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
+using System.Collections.Immutable;
+
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -128,7 +131,34 @@ namespace RSharp.Compiler
                 }
             }
 
-            // 4. Emisión del Rust.
+            // 4. Los analizadores del núcleo (R#0001, R#0101).
+            if (options.Analyzers.Count > 0)
+            {
+                var withAnalyzers = compilation.WithAnalyzers(ImmutableArray.Create(options.Analyzers.ToArray()));
+                foreach (var diagnostic in withAnalyzers.GetAnalyzerDiagnosticsAsync(default).GetAwaiter().GetResult())
+                {
+                    if (diagnostic.Severity == DiagnosticSeverity.Hidden)
+                    {
+                        continue;
+                    }
+
+                    FileLinePositionSpan span = diagnostic.Location.GetLineSpan();
+                    diagnostics.Add(new RSharpDiagnostic(
+                        SpecCode(diagnostic.Id),
+                        diagnostic.Severity == DiagnosticSeverity.Error ? RSharpSeverity.Error : RSharpSeverity.Warning,
+                        diagnostic.GetMessage(),
+                        span.Path,
+                        span.StartLinePosition.Line + 1,
+                        span.StartLinePosition.Character + 1,
+                        0,
+                        "Consulta docs/decisions/0003-core-v1-subset.md."));
+                }
+            }
+
+            // 5. Reglas que dependen del destino (R#0101, R#0150).
+            Rules.TargetRules.Apply(trees, compilation, options, diagnostics);
+
+            // 6. Emisión del Rust.
             var types = new RustTypeMapper(compilation);
             var emitter = new RustEmitter(compilation, options, types, diagnostics);
 
@@ -176,6 +206,25 @@ namespace RSharp.Compiler
             }
 
             return new TranspileResult(files, diagnostics, sourceMaps, entryClass);
+        }
+
+        /// <summary>
+        /// Traduce el ID interno de un analizador al código de la spec.
+        /// </summary>
+        /// <remarks>
+        /// Roslyn exige que el ID sea un identificador válido, así que los
+        /// analizadores usan <c>RS0001</c>, <c>RS0101</c> y <c>RS0150</c>. El
+        /// usuario ve los códigos de la spec: <c>R#0001</c>, <c>R#0101</c> y
+        /// <c>R#0150</c>.
+        /// </remarks>
+        private static string SpecCode(string analyzerId)
+        {
+            if (analyzerId.StartsWith("RS", StringComparison.Ordinal))
+            {
+                return "R#" + analyzerId.Substring(2);
+            }
+
+            return analyzerId;
         }
 
         /// <summary>

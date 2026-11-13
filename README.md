@@ -84,8 +84,8 @@ Para desarrollar en VSCode: abre la raíz del repositorio y pulsa **F5**.
 | Área | Estado |
 |---|---|
 | Extensión de VSCode (comandos, gramática, diagnósticos, source maps, ejecución, depuración) | ✅ Implementada |
-| Proyecto de ejemplo con flujo completo y prueba diferencial contra .NET | ✅ 25/25 pruebas |
-| CLI `rsharp` (compilador) | 🟡 Funciona: API, frontend Roslyn, emisión y CLI |
+| Proyecto de ejemplo con flujo completo y prueba diferencial contra .NET | ✅ 29/29 pruebas |
+| CLI `rsharp` (compilador) | 🟡 API, frontend Roslyn, emisión, CLI y analizadores (`R#0001`, `R#0101`, `R#0150`) |
 | BCL por destino | ⛔ Pendiente |
 | Destino WASM completo | 🟡 Parcial (la extensión ya compila a WASM) |
 | Bindings de crates y FFI | ⛔ Pendiente |

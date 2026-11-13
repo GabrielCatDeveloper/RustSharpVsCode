@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+
+using Microsoft.CodeAnalysis.Diagnostics;
 
 using RSharp.Compiler;
 using RSharp.Runtime;
@@ -451,7 +454,16 @@ namespace RSharp.Cli
                 Target = options.Target ?? config.Target,
                 Profile = config.Profile,
                 Sugar = config.Sugar,
+                Analyzers = Analyzers(),
             };
+        }
+
+        /// <summary>Los analizadores del núcleo que se aplican al compilar.</summary>
+        private static ImmutableArray<DiagnosticAnalyzer> Analyzers()
+        {
+            return ImmutableArray.Create<DiagnosticAnalyzer>(
+                new RSharp.Analyzers.Rules.RSharpCoreAnalyzer(),
+                new RSharp.Analyzers.Rules.RSharpBclAnalyzer());
         }
 
         private static void WriteCargoManifest(string outputDirectory, string projectName)
