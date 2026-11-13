@@ -1,2 +1,9 @@
 <Solution>
+  <Folder Name="/src/">
+    <Project Path="src/RSharp.Analyzers/RSharp.Analyzers.csproj" />
+    <Project Path="src/RSharp.Attributes/RSharp.Attributes.csproj" />
+    <Project Path="src/RSharp.Cli/RSharp.Cli.csproj" />
+    <Project Path="src/RSharp.Compiler/RSharp.Compiler.csproj" />
+    <Project Path="src/RSharp.Runtime/RSharp.Runtime.csproj" />
+  </Folder>
 </Solution>

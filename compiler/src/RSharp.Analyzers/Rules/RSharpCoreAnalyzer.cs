@@ -48,16 +48,31 @@ namespace RSharp.Analyzers.Rules
         {
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
             context.EnableConcurrentExecution();
-            context.RegisterSyntaxNodeAction(AnalyzeDynamic, SyntaxKind.DynamicKeyword);
+            context.RegisterSyntaxNodeAction(AnalyzeDynamicType, SyntaxKind.IdentifierName);
             context.RegisterSyntaxNodeAction(AnalyzeAwait, SyntaxKind.AwaitExpression);
         }
 
         /// <summary>
         /// `dynamic` no tiene equivalente en el núcleo v1 (spec §6.1).
         /// </summary>
-        private static void AnalyzeDynamic(SyntaxNodeAnalysisContext context)
+        /// <remarks>
+        /// En C#, `dynamic` es un tipo como cualquier otro: se detecta por su
+        /// identificador.
+        /// </remarks>
+        private static void AnalyzeDynamicType(SyntaxNodeAnalysisContext context)
         {
-            var node = (DynamicExpressionSyntax)context.Node;
+            var node = (IdentifierNameSyntax)context.Node;
+            if (node.Identifier.Text != "dynamic")
+            {
+                return;
+            }
+
+            // Solo cuenta si se usa como tipo, no como variable.
+            if (!(node.Parent is TypeSyntax))
+            {
+                return;
+            }
+
             context.ReportDiagnostic(Diagnostic.Create(NotInCore, node.GetLocation(), "dynamic"));
         }
 

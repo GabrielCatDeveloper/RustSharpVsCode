@@ -130,6 +130,7 @@ namespace RSharp.Cli
 
             WriteCargoManifest(outputDirectory, config.ProjectName);
             WriteSourceMaps(outputDirectory, result);
+            WriteLockFile(projectRoot, config);
 
             var files = result.Files
                 .Select(file => new
@@ -202,6 +203,7 @@ namespace RSharp.Cli
 
             WriteCargoManifest(outputDirectory, config.ProjectName);
             WriteSourceMaps(outputDirectory, result);
+            WriteLockFile(projectRoot, config);
 
             // Los módulos: el `main.rs` declara el resto.
             string mainFile = result.Files
@@ -491,6 +493,32 @@ namespace RSharp.Cli
             File.WriteAllText(
                 Path.Combine(outputDirectory, "rsharp.sourcemap.json"),
                 JsonSerializer.Serialize(payload, JsonOptions));
+        }
+
+        /// <summary>
+        /// Escribe el archivo de bloqueo (spec §3 y §9).
+        /// </summary>
+        /// <remarks>
+        /// Guarda el hash de la configuración de <em>sugar</em>: si cambia, los
+        /// bloqueos afectados quedan invalidados y la extensión lo avisa.
+        /// Se confirma en git, porque es la forma de que dos personas
+        /// compilen lo mismo.
+        /// </remarks>
+        private static void WriteLockFile(string projectRoot, RSharpConfig config)
+        {
+            string hash = SugarHash.Compute(config.Sugar);
+            var lockFile = new
+            {
+                version = 1,
+                sugar = new { hash },
+                crates = new Dictionary<string, object>(),
+                libraries = new Dictionary<string, object>(),
+                ai = new Dictionary<string, object>(),
+            };
+
+            File.WriteAllText(
+                Path.Combine(projectRoot, "rsharp.lock"),
+                JsonSerializer.Serialize(lockFile, JsonOptions) + "\n");
         }
 
         // -------------------------------------------------------------------
