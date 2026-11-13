@@ -660,7 +660,7 @@ del agente principal (ver `ai/REVIEW.md`).
 - **Notas de la revisión:** Revisado en la entrada de 2026-11-13 de `ai/REVIEW.md`.
 
 ### T-VSCD-014 · Capa de activación de la extensión
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 2
 - **Depende de:** T-VSCD-008, T-VSCD-009
@@ -673,10 +673,10 @@ del agente principal (ver `ai/REVIEW.md`).
   - Sin `rsharp.toml` la extensión sigue activa y avisa en el panel.
   - `rsharp.restartLanguageServer` ejecuta `C#: Restart Language Server` si existe y, si no, avisa de que falta C# Dev Kit.
   - `rsharp.toggleCSharpAssociation` alterna `files.associations` con `WorkspaceEdit` y `ConfigurationTarget.Workspace`.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** Implementado por el agente principal. Verificado con una instancia real de VSCode (`--extensionDevelopmentPath`): la extensión se activa con `workspaceContains:**/rsharp.toml`, detecta el proyecto, lee `rsharp.toml`, encuentra `cargo` y la CLI, y escribe el panel `R#` sin avisos ni errores.
 
 ### T-VSCD-015 · Documentación de la extensión
-- **Estado:** TODO
+- **Estado:** DONE
 - **Ejecutor:** MiniMax M3.1 Flash (implementación) + revisión del agente principal
 - **Fase:** Fase 2
 - **Depende de:** T-VSCD-014
@@ -687,7 +687,7 @@ del agente principal (ver `ai/REVIEW.md`).
   - `docs/EXTENSION.md` tiene las 10 secciones obligatorias del plan original, incluidas "qué SÍ" y "qué NO se puede hacer todavía" con la sección de la spec que lo respalda.
   - La depuración con CodeLLDB aparece marcada como no implementada (§14.5).
   - Los mensajes de error citados son los literales del código.
-- **Notas de la revisión:** —
+- **Notas de la revisión:** `docs/EXTENSION.md` (12 secciones con las tablas de comandos y ajustes), `docs/ARCHITECTURE.md`, `docs/CLI-CONTRACT.md`, `extension/README.md`, `extension/CHANGELOG.md` y `README.md` de la raíz. Revisado contra el código real.
 
 ---
 

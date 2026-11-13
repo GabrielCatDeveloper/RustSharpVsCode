@@ -193,6 +193,56 @@ y se documente como tal).
 
 ---
 
+### Revisión REV-002 · Activación, ejecución y depuración «al estilo TypeScript»
+
+- **Fecha:** 2026-11-13
+- **Tarea:** `T-VSCD-014`, `T-VSCD-015` · Capa de activación y documentación
+- **Revisor:** agente principal de la sesión
+- **Modelo ejecutor:** minimax/MiniMax-M3.1-Flash (Ondas 1-3) + agente principal (activación, ejecución y depuración)
+- **Fase:** Fase 2
+- **Veredicto:** APROBADO
+
+#### Defectos encontrados
+
+| # | Archivo y línea | Severidad | Descripción |
+|---|---|---|---|
+| 1 | `extension/package.json` (`scripts.test`) | Bloqueante | `node --test out/test/` no expande el directorio en Node 22: la suite no se ejecutaba. Corregido a `node --test out/test/*.test.js`. |
+| 2 | `extension/src/extension.ts` (inexistente) | Bloqueante | `package.json` declaraba `main: ./out/extension.js` pero no había fichero de activación: la extensión no arrancaba. |
+| 3 | `extension/src/commands.ts` | Mayor | Los 8 comandos no registraban `DiagnosticCollection`: los errores de `rustc` nunca llegaban al editor. |
+| 4 | `extension/src/commands.ts` | Mayor | `R#: Run` usaba `terminal.sendText`, que no permite capturar la salida: los pánicos de Rust no se podían traducir al `.rsh`. |
+| 5 | `extension/package.json` (8 comandos declarados) | Mayor | `showOutput`, `selectTarget`, `selectProfile`, `openGeneratedRust`, `copyGeneratedRust`, `restartLanguageServer`, `toggleCSharpAssociation` y `showToolchainStatus` no estaban registrados: «command not found». |
+| 6 | `extension/package.json` (`scope`) | Menor | `rsharp.target`, `rsharp.profile` y `rsharp.autoDetectToolchain` se leían con ámbito de recurso pero eran `window`: VSCode registraba un aviso en cada activación. |
+| 7 | `extension/src/debug.ts` | Menor | `vscode.DebugBreakpoint` no existe en la API pública: se sustituyó por un tipo local. |
+| 8 | `extension/src/sourcemap.ts` | Mayor | Faltaba el mapa inverso (línea `.rsh` → línea Rust) que necesitan los puntos de parada de CodeLLDB. Añadido `resolveRshLocation`. |
+
+#### Correcciones aplicadas
+
+- `extension/package.json` — script de test corregido; 18 comandos registrados; `scope` de los ajustes ajustado.
+- `extension/src/extension.ts` — creado: activa comandos, panel `R#`, `DiagnosticCollection`, barra de estado, vista lateral, proveedor de depuración y los observadores de fichero.
+- `extension/src/commands.ts` — ganchos `onCliResult` y `onProgramOutput`; `R#: Run` pasa a usar el seudoterminal.
+- `extension/src/publish.ts`, `errors.ts`, `panic.ts`, `session.ts`, `terminal.ts`, `debug.ts` — nuevos.
+- `extension/src/sourcemap.ts` — `resolveRshLocation` añadido.
+
+#### Observaciones pendientes
+
+- **O1 · Depuración real de línea.** LLDB no consume source maps de línea como Node con TypeScript: el punto de parada se traduce a la línea de Rust más cercana y el depurador abre el fichero Rust. Está documentado en `docs/EXTENSION.md` (§5.3 y §9).
+- **O2 · Formato del source map.** Sigue siendo una decisión ABIERTA de la spec (§19.5); el formato está fijado en `extension/src/types.ts` y documentado en `docs/CLI-CONTRACT.md`.
+- **O3 · Dependencias de `Cargo.toml` generado.** La extensión no genera `Cargo.toml`: lo hace la CLI (spec §9).
+
+#### Verificación ejecutada
+
+- `npm test` → **185 pruebas, 0 fallos** (incluye una prueba de integración con `cargo` real).
+- `npm run compile` y `npx tsc -p ./ --noEmit` → sin errores.
+- `npx vsce package` → `rsharp.vsix` (28 ficheros, 76,5 KB).
+- Instancia real de VSCode con `--extensionDevelopmentPath`: la extensión se activa, detecta `rsharp.toml`, resuelve `cargo` y la CLI, y escribe el panel `R#` sin avisos.
+- Flujo completo con el mock: error real `E0308` de `rustc` en `main.rs:2:18` → source map → `src/main.rsh:2` → `R# error [E0308]: mismatched types`.
+
+**Firma:** agente principal de la sesión · 2026-11-13 · APROBADO
+
+---
+
+---
+
 ## Plantilla para nuevas revisiones
 
 Copiar el bloque de la sección "Plantilla de revisión" y añadirlo al final de

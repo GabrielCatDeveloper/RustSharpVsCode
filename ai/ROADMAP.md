@@ -30,7 +30,7 @@ Roadmap completo del **proyecto R#**, no solo de la extensión de VSCode.
 |---|---|---|---|---|
 | 0 | Fundación | **In progress** | Spec y decisiones abiertas identificadas; falta cerrar §19 | `T-FND-001..006`, `T-OPEN-001..008` |
 | 1 | Núcleo del transpilador | **Todo** | Sin implementar | `T-CORE-001..016` |
-| 2 | Extensión de VSCode | **In progress** | Ondas 1-3 revisadas y aprobadas; falta capa de activación y documentación | `T-VSCD-001..015` |
+| 2 | Extensión de VSCode | **Done** | 15/15 tareas cerradas; 185 pruebas; verificado en una instancia real de VSCode | `T-VSCD-001..015` |
 | 3 | BCL por destino | **Todo** | — | `T-BCL-001..006` |
 | 4 | Destino WASM | **Todo** | — | `T-WASM-001..005` |
 | 5 | Bindings de crates y FFI | **Todo** | — | `T-FFI-001..009` |
@@ -58,8 +58,13 @@ Detalle del estado interno de la Fase 2 (la única con trabajo real hoy):
 | Vista lateral (`src/treeview.ts`) | Done |
 | Gramática TextMate (`syntaxes/rsharp.tmLanguage.json`) | Done |
 | Snippets (`snippets/rsharp.json`) | Done |
-| Capa de activación (`src/extension.ts`) | Todo |
-| Documentación (README, CHANGELOG, LICENSE, `docs/EXTENSION.md`) | Todo |
+| Ejecución sin ver el Rust (`src/terminal.ts`, `src/errors.ts`, `src/panic.ts`) | Done |
+| Depuración con CodeLLDB (`src/debug.ts`) | Done |
+| Formato de error estilo TypeScript (`src/errors.ts`) | Done |
+| CLI de simulación (`tools/mock-rsharp.mjs`) | Done |
+| Pruebas (185, con integración y cargo real) | Done |
+| Capa de activación (`src/extension.ts`) | Done |
+| Documentación (README, CHANGELOG, LICENSE, `docs/EXTENSION.md`) | Done |
 
 ---
 
